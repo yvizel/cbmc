@@ -14,43 +14,38 @@
  * 1. Entry node
  * 2. Exit node
  * 3. Every node that has a back-edge - namely, a loop head.
- * This graph is used for large-step encoding of CHCs. Uninterpreted predicates
- * are only needed where there are cut-points.
  */
 
-class cutpoint_grapht;
-class cutpointt;
+class cutpoint_graph;
+class cutpoint;
 
-/**
- * A class that represents an edge in the graph
- */
-class cutpoint_edget
+class cutpoint_edge
 {
-  friend class cutpoint_grapht;
+  friend class cutpoint_graph;
 
-  cutpointt & m_src;
-  cutpointt & m_dst;
+  cutpoint & m_src;
+  cutpoint & m_dst;
 
-  typedef std::vector<const goto_programt::instructiont *> inst_vect;
-  inst_vect m_insts;
+  typedef std::vector<const goto_programt::instructiont *> InstVec;
+  InstVec m_insts;
 
-  cutpointt &source() { return m_src; }
-  cutpointt &target() { return m_dst; }
+  cutpoint &source() { return m_src; }
+  cutpoint &target() { return m_dst; }
 public:
-  cutpoint_edget(cutpointt & s, cutpointt & d) : m_src(s), m_dst(d) {}
+  cutpoint_edge(cutpoint & s, cutpoint & d) : m_src(s), m_dst(d) {}
 
-  const cutpoint_grapht & graph() const;
+  const cutpoint_graph& graph() const;
 
-  const cutpointt &source() const { return m_src; }
-  const cutpointt &target() const { return m_dst; }
+  const cutpoint &source() const { return m_src; }
+  const cutpoint &target() const { return m_dst; }
 
   void push_back(const goto_programt::instructiont * inst)
   {
     m_insts.push_back(inst);
   }
 
-  typedef inst_vect::iterator iterator;
-  typedef inst_vect::const_iterator const_iterator;
+  typedef InstVec::iterator iterator;
+  typedef InstVec::const_iterator const_iterator;
 
   iterator begin() { return m_insts.begin(); }
   iterator end() { return m_insts.end(); }
@@ -58,120 +53,118 @@ public:
   const_iterator end() const { return m_insts.end(); }
 };
 
-typedef std::shared_ptr<cutpoint_edget> cutpoint_edge_ptr;
+typedef std::shared_ptr<cutpoint_edge> cutpoint_edge_ptr;
 
-/**
- * A class that represents a cutpoint in the graph
- */
-class cutpointt
+class cutpoint
 {
-  const cutpoint_grapht &m_graph;
-  std::size_t m_id;
+  friend class cutpoint_graph;
+
+  const cutpoint_graph &m_graph;
+  unsigned m_id;
   const goto_programt::instructiont & m_inst;
 
-  typedef std::vector<cutpoint_edge_ptr> edge_vect;
-  edge_vect m_succ;
+  typedef std::vector<cutpoint_edge_ptr> EdgeVec;
+  EdgeVec m_succ;
 
 public:
-  cutpointt(const cutpoint_grapht &p, std::size_t id, const goto_programt::instructiont &inst)
+  cutpoint(const cutpoint_graph &p, unsigned id, const goto_programt::instructiont &inst)
     : m_graph(p), m_id(id), m_inst(inst) {}
 
-  const cutpoint_grapht &graph() const { return m_graph; }
-  std::size_t id() const { return m_id; }
+  const cutpoint_graph &graph() const { return m_graph; }
+  unsigned id() const { return m_id; }
   const goto_programt::instructiont &inst() const { return m_inst; }
 
-  void add_succ(cutpoint_edge_ptr & edg) { m_succ.push_back(edg); }
+  void addSucc(cutpoint_edge_ptr & edg) { m_succ.push_back(edg); }
 
-  typedef edge_vect::const_iterator const_iterator;
-  typedef edge_vect::const_reverse_iterator const_reverse_iterator;
+  typedef EdgeVec::const_iterator const_iterator;
+  typedef EdgeVec::const_reverse_iterator const_reverse_iterator;
 
   const_iterator succ_begin() const { return m_succ.begin(); }
   const_iterator succ_end() const { return m_succ.end(); }
 
-  void to_dot(std::ostream & out, const namespacet & ns)
+  void toDot(std::ostream & out, const namespacet & ns)
   {
     out << "Node_" << m_id << " [shape=Mrecord,fontsize=22,label=\"";
     out << m_inst.to_string() << "\"];\n";
   }
 };
 
-/**
- * The graph
- */
-class cutpoint_grapht
+class cutpoint_graph
 {
   const goto_modelt & m_goto_model;
 
-  typedef std::shared_ptr<cutpointt> cutpoint_ptr;
-  typedef std::vector<cutpoint_ptr> cutpoint_vect;
+  typedef std::shared_ptr<cutpoint> cutpoint_ptr;
+  typedef std::vector<cutpoint_ptr> CutpointVec;
 
-  typedef std::vector<cutpoint_edge_ptr> edge_vect;
+  typedef std::vector<cutpoint_edge_ptr> EdgeVec;
 
-  cutpoint_vect m_cps;
-  edge_vect m_edges;
+  CutpointVec m_cps;
+  EdgeVec m_edges;
 
-  class reachabilityt : public std::vector<bool> {
+  class reachability : public std::vector<bool> {
   public:
-    void set(std::size_t index) {
+    void set(unsigned index) {
       if (index >= size()) resize(index+1, false);
       (*this)[index] = true;
     }
 
-    reachabilityt & operator|=(const reachabilityt & other) {
+    reachability& operator|=(const reachability & other) {
       if (this->size() < other.size())
         this->resize(other.size(), false);
-      for (std::size_t i = 0; i < other.size(); i++)
+      for (unsigned i = 0; i < other.size(); i++)
         (*this)[i] = (*this)[i] || other[i];
       return *this;
     }
   };
 
-  typedef std::map<const goto_programt::instructiont*, reachabilityt>
-    inst_bool_mapt;
+  typedef std::map<const goto_programt::instructiont*, reachability> InstBoolMap;
 
-  inst_bool_mapt m_fwd;
-  inst_bool_mapt m_bwd;
+  InstBoolMap m_fwd;
+  InstBoolMap m_bwd;
 
-  std::map<const goto_programt::instructiont*, std::shared_ptr<cutpointt>> m_insts;
+  std::map<const goto_programt::instructiont*, std::shared_ptr<cutpoint>> m_insts;
 
-  cutpoint_edge_ptr create_edge(cutpointt &s, cutpointt &d) {
-    m_edges.push_back(std::make_shared<cutpoint_edget>(s, d));
+  cutpoint_edge_ptr newEdge(cutpoint &s, cutpoint &d) {
+    m_edges.push_back(std::make_shared<cutpoint_edge>(s, d));
 
     cutpoint_edge_ptr edg = m_edges.back();
 
-    s.add_succ(edg);
+    s.addSucc(edg);
     return edg;
   }
 
-  void compute_cutpoints(const goto_functiont & goto_function);
-  void compute_fwd_reach(const goto_functiont & goto_function);
-  void compute_bwd_reach(const goto_functiont & goto_function);
-  void compute_edges(const goto_functiont & goto_function);
+  void computeCutpoints(const goto_functiont & goto_function);
+  void computeFwdReach(const goto_functiont & goto_function);
+  void computeBwdReach(const goto_functiont & goto_function);
+  void computeEdges(const goto_functiont & goto_function);
 
-  void to_dot(const goto_functiont & f, std::string filename);
+  void toDot(const goto_functiont & f, std::string filename);
 
 public:
-  cutpoint_grapht(const goto_modelt & goto_model) : m_goto_model(goto_model) {}
-  ~cutpoint_grapht();
+  cutpoint_graph(const goto_modelt & goto_model) : m_goto_model(goto_model) {}
+  ~cutpoint_graph();
 
   void run(const goto_functiont & goto_function);
 
-  bool is_cutpoint(const goto_programt::instructiont & inst) const
+  bool isCutpoint(const goto_programt::instructiont & inst) const
   {
     return m_insts.count(&inst) > 0;
   }
 
-  cutpointt &get_cutpoint(const goto_programt::instructiont & inst) const {
-    INVARIANT(is_cutpoint(inst), "Function should be called with a cutpoint");
+  cutpoint &getCutpoint(const goto_programt::instructiont & inst) const {
+    INVARIANT(isCutpoint(inst), "Function should be called with a cutpoint");
     return *(m_insts.find(&inst)->second);
   }
 
-  cutpoint_edge_ptr get_edge(const cutpointt &s, const cutpointt &d);
-  const cutpoint_edge_ptr getEdge(const cutpointt &s, const cutpointt &d) const;
+  cutpoint_edge_ptr getEdge(const cutpoint &s, const cutpoint &d);
+  const cutpoint_edge_ptr getEdge(const cutpoint &s, const cutpoint &d) const;
+
+  bool isFwdReach(const cutpoint & cp, const goto_programt::instructiont &inst) const;
 };
 
-inline const cutpoint_grapht &cutpoint_edget::graph() const { return m_src.graph(); }
+inline const cutpoint_graph & cutpoint_edge::graph() const { return m_src.graph(); }
 
 
 
 #endif //CBMC_CUTPOINT_GRAPH_H
+>>>>>>> 22e48ff7e1 (Adding CHCs data structures and utilities for resolution-based large step encoding)

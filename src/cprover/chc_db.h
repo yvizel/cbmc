@@ -165,10 +165,18 @@ public:
   {
     if (f.is_true())
       return;
-    for (auto & c : m_clauses) {
-      if (c.get_chc()==f) return;
+    auto new_cls = horn_clauset(f);
+    // Equivalent (semantic) queries may represent
+    // different properties
+    if (!new_cls.is_query())
+    {
+      for(auto &c : m_clauses)
+      {
+        if(c.get_chc() == f)
+          return;
+      }
     }
-    m_clauses.push_back(horn_clauset(f));
+    m_clauses.push_back(new_cls);
     reset_indices();
   }
 

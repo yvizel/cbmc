@@ -4,8 +4,6 @@
 
 #include "chc_db.h"
 
-#include <iostream>
-
 chc_dbt::chc_sett chc_dbt::m_empty_set;
 std::unordered_set<exprt, irep_hash> chc_grapht::m_expr_empty_set;
 

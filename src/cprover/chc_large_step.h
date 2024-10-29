@@ -9,9 +9,9 @@
 #include <util/substitute_symbols.h>
 #include <util/format_expr.h>
 
-/*
- * Traverses the clauses in order and resolving all predicates (symbols)
- * that are not a head (e.g. a head of a loop).
+/**
+ * Traverses the clauses in order (wto) and resolving all predicates (symbols)
+ * that are not a head of a component (e.g. a head of a loop).
  * This is similar to variable elimination in SAT.
  */
 class resolution_visitort : public wto_element_visitort
@@ -38,8 +38,11 @@ public:
   {
     const symbol_exprt* head = comp.head();
     m_heads.insert(head->hash());
-    std::string str = head->get_identifier().c_str();
-    std::cout << "Head: " << str << "\n";
+    if (m_verbose)
+    {
+      std::string str = head->get_identifier().c_str();
+      std::cout << "Head: " << str << "\n";
+    }
     for (auto it = comp.begin(); it != comp.end(); it++)
     {
       it->get()->accept(this);
@@ -47,6 +50,7 @@ public:
     eliminate(head);
   }
 
+  // Create the new CHC db after eliminating uninterpreted predicates.
   void populate_new_db()
   {
     std::vector<symbol_exprt> rels;
@@ -131,6 +135,13 @@ private:
     }
   }
 
+  /** Assuming the following shapes:
+   * c1 := Sxx(ς) ∧ ς(COND1) ⇒ Syy(ς[update1])
+   * c2 := Syy(ς) ∧ ς(COND2) ⇒ Szz(ς[update2])
+   * In this case, Syy(ς) is eliminated and we use substitution for c2 such
+   * that it "operates" over ς[update1]. This results in:
+   * Sxx(ς) ∧ ς(COND1) ∧ ς[update1](COND2) ⇒ Szz(ς[update1][update2])
+   */
   forall_exprt resolve_clauses(const horn_clauset & c1, const horn_clauset & c2)
   {
     const exprt &body1 = *c1.body();

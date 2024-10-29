@@ -14,11 +14,16 @@
  * 1. Entry node
  * 2. Exit node
  * 3. Every node that has a back-edge - namely, a loop head.
+ * This graph is used for large-step encoding of CHCs. Uninterpreted predicates
+ * are only needed where there are cut-points.
  */
 
 class cutpoint_grapht;
 class cutpointt;
 
+/**
+ * A class that represents an edge in the graph
+ */
 class cutpoint_edget
 {
   friend class cutpoint_grapht;
@@ -55,6 +60,9 @@ public:
 
 typedef std::shared_ptr<cutpoint_edget> cutpoint_edge_ptr;
 
+/**
+ * A class that represents a cutpoint in the graph
+ */
 class cutpointt
 {
   const cutpoint_grapht &m_graph;
@@ -87,6 +95,9 @@ public:
   }
 };
 
+/**
+ * The graph
+ */
 class cutpoint_grapht
 {
   const goto_modelt & m_goto_model;

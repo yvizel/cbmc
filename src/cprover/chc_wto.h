@@ -17,6 +17,22 @@
 class wto_singletont;
 class wto_componentt;
 
+/**
+ * Bourdoncle Components over the cut-point graph of CHCs is a weak topological
+ * ordering (wto) on cut-points. This is mainly known from the work on
+ * widening operations in abstract interpretation. The most common intuition
+ * is an ordering of graph vertices with well-formed (aka well-matched)
+ * parentheses that mark components.
+ *
+ * For example, 1 (2 (3 4 5 6) 7) 8 is a wto with two components, where the
+ * inner componenet includes vertices 3-6, the outter component includes
+ * vertices 2 and 7. In this simple example, vertex 1 is the entry point, and
+ * vertex 8 is the exit point. Vertex 2 can be though of as the head of the
+ * outer loop, while vertex 3 is the head of the inner loop.
+ *
+ * The wto is used to guide the elimination step.
+ */
+
 class wto_element_visitort
 {
 public:
@@ -171,7 +187,6 @@ private:
   }
 
   inf_numt visit(const symbol_exprt* v, std::deque<wto_element_ptr> &partition) {
-    std::string name = as_string(v->get_identifier());
     m_stack.push_back(v);
     m_dfn[v->hash()] = m_cur_dfn_num++;
     auto head = get_dfn(v);
@@ -276,6 +291,10 @@ public:
   }
 };
 
+/**
+ * Simple Visitor prints the components of the WTO with well-formed
+ * parentheses.
+ */
 class simple_visitort : public wto_element_visitort
 {
   virtual void visit(const wto_singletont & s)

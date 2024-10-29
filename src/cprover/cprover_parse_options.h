@@ -28,7 +28,6 @@ Author: Daniel Kroening, dkr@amazon.com
   "(large-step)"                                                               \
   "(verbose)"
 
-
 class cprover_parse_optionst
 {
 public:

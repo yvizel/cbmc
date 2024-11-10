@@ -7,6 +7,42 @@
 chc_dbt::chc_sett chc_dbt::m_empty_set;
 std::unordered_set<exprt, irep_hash> chc_grapht::m_expr_empty_set;
 
+void horn_clauset::used_relations(chc_dbt &db, std::vector<symbol_exprt> & out) const
+{
+  const exprt *body = this->body();
+  if (body == nullptr) return;
+  std::set<symbol_exprt> symbols = find_symbols(*body);
+
+  chc_dbt::is_state_pred filter(db);
+  for (auto & symb : symbols) {
+    if (filter(symb)) {
+      out.push_back(symb);
+    }
+  }
+}
+
+void horn_clauset::used_func_app(chc_dbt &db, std::vector<function_application_exprt> & out) const
+{
+  const exprt *body = this->body();
+  if (body == nullptr) return;
+
+  std::unordered_set<function_application_exprt, irep_hash> funcs;
+  body->visit_pre([&funcs](const exprt &expr) {
+                    if (can_cast_expr<function_application_exprt>(expr))
+                    {
+                      const function_application_exprt & f = to_function_application_expr(expr);
+                      funcs.insert(f);
+                    }
+                  });
+
+  chc_dbt::is_state_pred filter(db);
+  for (auto & f : funcs) {
+    if (filter(to_symbol_expr(f.function()))) {
+      out.push_back(f);
+    }
+  }
+}
+
 void chc_dbt::reset_indices()
 {
   m_body_idx.clear();
@@ -28,7 +64,7 @@ void chc_dbt::build_indices()
     m_head_idx[func].insert(i);
 
     std::vector<symbol_exprt> use;
-    r.used_relations(*this,std::back_inserter(use));
+    r.used_relations(*this, use);
     for (auto & symb : use)
     {
       m_body_idx[symb].insert(i);

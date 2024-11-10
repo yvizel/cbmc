@@ -8,7 +8,6 @@
 #include <util/mathematical_expr.h>
 #include <util/std_expr.h>
 #include <util/find_symbols.h>
-#include <language_util.h>
 
 #include <vector>
 #include <map>
@@ -101,10 +100,8 @@ public:
     return m_chc < other.m_chc;
   }
 
-  template <typename OutputIterator>
-  void used_relations(chc_dbt &db, OutputIterator out) const;
-  template <typename OutputIterator>
-  void used_func_app(chc_dbt &db, OutputIterator out) const;
+  void used_relations(chc_dbt &db, std::vector<symbol_exprt> & out) const;
+  void used_func_app(chc_dbt &db, std::vector<function_application_exprt> & out) const;
 };
 
 /*
@@ -191,44 +188,6 @@ public:
   chcst::const_iterator begin() const { return m_clauses.begin(); }
   chcst::const_iterator end() const { return m_clauses.end(); }
 };
-
-template <typename OutputIterator>
-void horn_clauset::used_relations(chc_dbt &db, OutputIterator out) const
-{
-  const exprt *body = this->body();
-  if (body == nullptr) return;
-  std::set<symbol_exprt> symbols = find_symbols(*body);
-
-  chc_dbt::is_state_pred filter(db);
-  for (auto & symb : symbols) {
-    if (filter(symb)) {
-      *out = symb;
-    }
-  }
-}
-
-template <typename OutputIterator>
-void horn_clauset::used_func_app(chc_dbt &db, OutputIterator out) const
-{
-  const exprt *body = this->body();
-  if (body == nullptr) return;
-
-  std::unordered_set<function_application_exprt, irep_hash> funcs;
-  body->visit_pre([&funcs](const exprt &expr) {
-                     if (can_cast_expr<function_application_exprt>(expr))
-                     {
-                       const function_application_exprt & f = to_function_application_expr(expr);
-                       funcs.insert(f);
-                     }
-                   });
-
-  chc_dbt::is_state_pred filter(db);
-  for (auto & f : funcs) {
-    if (filter(to_symbol_expr(f.function()))) {
-      *out = f;
-    }
-  }
-}
 
 /*
  * The CHC dependency graph.

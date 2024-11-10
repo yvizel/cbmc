@@ -58,7 +58,7 @@ public:
     {
       if(clause.is_query())
       {
-        clause.used_relations(m_db, std::back_inserter(rels));
+        clause.used_relations(m_db, rels);
       }
     }
 
@@ -91,8 +91,7 @@ private:
     {
       auto & clause = m_db.get_clause(idx);
       std::vector<symbol_exprt> use;
-
-      clause.used_relations(m_db,std::back_inserter(use));
+      clause.used_relations(m_db, use);
       if (use.size() > 1) {
         throw incorrect_goto_program_exceptiont("Non-linear CHCs not supported yet");
       }
@@ -150,7 +149,7 @@ private:
     const exprt &head2 = *c2.head();
 
     std::vector<function_application_exprt> use2;
-    c2.used_func_app(m_db,std::back_inserter(use2));
+    c2.used_func_app(m_db,use2);
 
     INVARIANT(use2.size() == 1, "Only handling linear case");
     if (use2.size() != 1)

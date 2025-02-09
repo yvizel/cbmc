@@ -5,14 +5,16 @@
 #ifndef CBMC_CHC_DB_H
 #define CBMC_CHC_DB_H
 
+#include <util/find_symbols.h>
 #include <util/mathematical_expr.h>
 #include <util/std_expr.h>
-#include <util/find_symbols.h>
 
-#include <vector>
+#include "expr_iterator.h"
+
+#include <functional>
 #include <map>
 #include <set>
-#include <functional>
+#include <vector>
 
 class chc_dbt;
 
@@ -30,57 +32,54 @@ class horn_clauset
   forall_exprt m_chc;
 
 public:
-  horn_clauset(forall_exprt f) : m_chc(f) {}
-
-  horn_clauset(std::vector<symbol_exprt> & vars, exprt clause) : m_chc(vars, clause) {
-
+  horn_clauset(forall_exprt f) : m_chc(f)
+  {
   }
 
-  const forall_exprt & get_chc() const
+  horn_clauset(std::vector<symbol_exprt> &vars, exprt clause)
+    : m_chc(vars, clause)
+  {
+  }
+
+  const forall_exprt &get_chc() const
   {
     return m_chc;
   }
 
-  const exprt* body() const {
-    if (can_cast_expr<implies_exprt>(m_chc.where()))
+  const exprt *body() const
+  {
+    if(can_cast_expr<implies_exprt>(m_chc.where()))
     {
       return &to_implies_expr(m_chc.where()).op0();
     }
     return &m_chc.where();
   }
 
-  const exprt* head() const {
-    if (can_cast_expr<implies_exprt>(m_chc.where()))
+  const exprt *head() const
+  {
+    if(can_cast_expr<implies_exprt>(m_chc.where()))
     {
       return &to_implies_expr(m_chc.where()).op1();
     }
     return nullptr;
   }
 
-  bool is_fact() const {
+  bool is_fact() const
+  {
     auto b = body();
-    bool not_fact = false;
-    b->visit_pre(
-      [&not_fact](const exprt &expr)  {
-        if(can_cast_expr<function_application_exprt>(expr))
-        {
-          not_fact = true;
-        }
-      });
-    return !not_fact;
+    const std::function<bool(const exprt &)> pred = [](const exprt &subexpr) {
+      return can_cast_expr<function_application_exprt>(subexpr);
+    };
+    auto it = std::find_if(b->depth_begin(), b->depth_end(), pred);
+
+    return (it == b->depth_end());
   }
 
-  bool is_query() const {
-    if (can_cast_expr<implies_exprt>(m_chc.where()))
+  bool is_query() const
+  {
+    if(can_cast_expr<implies_exprt>(m_chc.where()))
     {
-      auto h = head();
-      bool res = true;
-      h->visit_pre(
-        [&res](const exprt &expr) {
-          if(can_cast_expr<function_application_exprt>(expr))
-            res = false;
-      });
-      return res;
+      return (can_cast_expr<function_application_exprt>(*head()));
     }
     return false;
   }
@@ -92,7 +91,7 @@ public:
 
   bool operator!=(const horn_clauset &other) const
   {
-    return !(*this==other);
+    return !(*this == other);
   }
 
   bool operator<(const horn_clauset &other) const
@@ -112,12 +111,19 @@ public:
 class chc_dbt
 {
   friend class horn_clauset;
-public:
-  struct is_state_pred : public std::__unary_function<exprt, bool> {
-    const chc_dbt &m_db;
-    is_state_pred(const chc_dbt &db) : m_db(db) {}
 
-    bool operator()(symbol_exprt state) { return m_db.has_state_pred(state); }
+public:
+  struct is_state_pred : public std::__unary_function<exprt, bool>
+  {
+    const chc_dbt &m_db;
+    is_state_pred(const chc_dbt &db) : m_db(db)
+    {
+    }
+
+    bool operator()(symbol_exprt state)
+    {
+      return m_db.has_state_pred(state);
+    }
   };
 
   typedef std::unordered_set<std::size_t> chc_sett;
@@ -136,37 +142,50 @@ private:
   static chc_sett m_empty_set;
 
 public:
-  chc_dbt() {}
+  chc_dbt()
+  {
+  }
 
-  void add_state_pred(const symbol_exprt & state) { m_state_preds.insert(state); }
-  const std::unordered_set<symbol_exprt, irep_hash> &get_state_preds() { return m_state_preds; }
-  bool has_state_pred(const symbol_exprt & state) const { return m_state_preds.count(state) > 0; }
+  void add_state_pred(const symbol_exprt &state)
+  {
+    m_state_preds.insert(state);
+  }
+  const std::unordered_set<symbol_exprt, irep_hash> &get_state_preds()
+  {
+    return m_state_preds;
+  }
+  bool has_state_pred(const symbol_exprt &state) const
+  {
+    return m_state_preds.count(state) > 0;
+  }
 
   void build_indices();
   void reset_indices();
 
-  const chc_sett & use(const exprt & state) const {
-    auto it = m_body_idx.find(state);
-    if (it == m_body_idx.end())
-      return m_empty_set;
-    return it->second;
-  }
-
-  const chc_sett & def(const exprt & state) const {
-    auto it = m_head_idx.find(state);
-    if (it == m_head_idx.end())
-      return m_empty_set;
-    return it->second;
-  }
-
-  void add_clause(const forall_exprt & f)
+  const chc_sett &use(const exprt &state) const
   {
-    if (f.is_true())
+    auto it = m_body_idx.find(state);
+    if(it == m_body_idx.end())
+      return m_empty_set;
+    return it->second;
+  }
+
+  const chc_sett &def(const exprt &state) const
+  {
+    auto it = m_head_idx.find(state);
+    if(it == m_head_idx.end())
+      return m_empty_set;
+    return it->second;
+  }
+
+  void add_clause(const forall_exprt &f)
+  {
+    if(f.is_true())
       return;
     auto new_cls = horn_clauset(f);
     // Equivalent (semantic) queries may represent
     // different properties
-    if (!new_cls.is_query())
+    if(!new_cls.is_query())
     {
       for(auto &c : m_clauses)
       {
@@ -178,16 +197,28 @@ public:
     reset_indices();
   }
 
-  [[nodiscard]] const horn_clauset & get_clause(std::size_t idx) const
+  [[nodiscard]] const horn_clauset &get_clause(std::size_t idx) const
   {
     INVARIANT(idx < m_clauses.size(), "Index in range");
     return m_clauses[idx];
   }
 
-  chcst::iterator begin() { return m_clauses.begin(); }
-  chcst::iterator end() { return m_clauses.end(); }
-  chcst::const_iterator begin() const { return m_clauses.begin(); }
-  chcst::const_iterator end() const { return m_clauses.end(); }
+  chcst::iterator begin()
+  {
+    return m_clauses.begin();
+  }
+  chcst::iterator end()
+  {
+    return m_clauses.end();
+  }
+  chcst::const_iterator begin() const
+  {
+    return m_clauses.begin();
+  }
+  chcst::const_iterator end() const
+  {
+    return m_clauses.end();
+  }
 };
 
 /*
@@ -197,7 +228,7 @@ public:
  */
 class chc_grapht
 {
-  chc_dbt & m_db;
+  chc_dbt &m_db;
   typedef std::map<exprt, std::unordered_set<exprt, irep_hash>> grapht;
   grapht m_incoming;
   grapht m_outgoing;
@@ -207,25 +238,36 @@ class chc_grapht
   static std::unordered_set<exprt, irep_hash> m_expr_empty_set;
 
 public:
-  chc_grapht(chc_dbt & db) : m_db(db), m_entry(nullptr) {}
+  chc_grapht(chc_dbt &db) : m_db(db), m_entry(nullptr)
+  {
+  }
 
   void build_graph();
 
-  bool has_entry() const { return m_entry != nullptr; }
-  const symbol_exprt *entry() const {
+  bool has_entry() const
+  {
+    return m_entry != nullptr;
+  }
+  const symbol_exprt *entry() const
+  {
     INVARIANT(has_entry(), "Entry must exist.");
-    return m_entry; }
+    return m_entry;
+  }
 
-  const std::unordered_set<exprt, irep_hash> &outgoing(const symbol_exprt &state) const {
+  const std::unordered_set<exprt, irep_hash> &
+  outgoing(const symbol_exprt &state) const
+  {
     auto it = m_outgoing.find(state);
-    if (it == m_outgoing.end())
+    if(it == m_outgoing.end())
       return m_expr_empty_set;
     return it->second;
   }
 
-  const std::unordered_set<exprt, irep_hash> &incoming(const symbol_exprt &state) const {
+  const std::unordered_set<exprt, irep_hash> &
+  incoming(const symbol_exprt &state) const
+  {
     auto it = m_incoming.find(state);
-    if (it == m_incoming.end())
+    if(it == m_incoming.end())
       return m_expr_empty_set;
     return it->second;
   }

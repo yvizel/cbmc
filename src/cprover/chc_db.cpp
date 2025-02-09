@@ -7,10 +7,11 @@
 chc_dbt::chc_sett chc_dbt::m_empty_set;
 std::unordered_set<exprt, irep_hash> chc_grapht::m_expr_empty_set;
 
-void horn_clauset::used_relations(chc_dbt &db, std::vector<symbol_exprt> & out) const
+std::vector<symbol_exprt> horn_clauset::used_relations(chc_dbt &db) const
 {
+  std::vector<symbol_exprt> out;
   const exprt *body = this->body();
-  if (body == nullptr) return;
+  if (body == nullptr) return out;
   std::set<symbol_exprt> symbols = find_symbols(*body);
 
   chc_dbt::is_state_pred filter(db);
@@ -19,6 +20,7 @@ void horn_clauset::used_relations(chc_dbt &db, std::vector<symbol_exprt> & out) 
       out.push_back(symb);
     }
   }
+  return out;
 }
 
 void horn_clauset::used_func_app(chc_dbt &db, std::vector<function_application_exprt> & out) const
@@ -63,8 +65,7 @@ void chc_dbt::build_indices()
     exprt func = to_function_application_expr(*r.head()).function();
     m_head_idx[func].insert(i);
 
-    std::vector<symbol_exprt> use;
-    r.used_relations(*this, use);
+    std::vector<symbol_exprt> use = r.used_relations(*this);
     for (auto & symb : use)
     {
       m_body_idx[symb].insert(i);

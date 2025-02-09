@@ -58,7 +58,8 @@ public:
     {
       if(clause.is_query())
       {
-        clause.used_relations(m_db, rels);
+        std::vector<symbol_exprt> r = clause.used_relations(m_db);
+        rels.insert(rels.end(), r.begin(), r.end());
       }
     }
 
@@ -90,8 +91,7 @@ private:
     for (auto idx : m_db.def(*symb))
     {
       auto & clause = m_db.get_clause(idx);
-      std::vector<symbol_exprt> use;
-      clause.used_relations(m_db, use);
+      std::vector<symbol_exprt> use = clause.used_relations(m_db);
       if (use.size() > 1) {
         throw incorrect_goto_program_exceptiont("Non-linear CHCs not supported yet");
       }

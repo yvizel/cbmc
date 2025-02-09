@@ -100,8 +100,9 @@ public:
     return m_chc < other.m_chc;
   }
 
-  void used_relations(chc_dbt &db, std::vector<symbol_exprt> & out) const;
-  void used_func_app(chc_dbt &db, std::vector<function_application_exprt> & out) const;
+  std::vector<symbol_exprt> used_relations(chc_dbt &db) const;
+  void used_func_app(chc_dbt &db, std::vector<function_application_exprt> &out)
+    const;
 };
 
 /*

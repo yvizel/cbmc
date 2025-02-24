@@ -79,7 +79,7 @@ public:
   {
     if(can_cast_expr<implies_exprt>(m_chc.where()))
     {
-      return (can_cast_expr<function_application_exprt>(*head()));
+      return !(can_cast_expr<function_application_exprt>(*head()));
     }
     return false;
   }

@@ -5,14 +5,14 @@ on:
   pull_request:
     branches: [ develop ]
 env:
-  cvc5-version: "1.1.2"
+  cvc5-version: "1.2.1"
   linux-vcpus: 4
   windows-vcpus: 4
 
 jobs:
   # This job takes approximately 15 to 40 minutes
-  check-ubuntu-20_04-make-gcc:
-    runs-on: ubuntu-20.04
+  check-ubuntu-24_04-make-gcc:
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,19 +29,19 @@ jobs:
         run: z3 --version
       - name: Download cvc-5 from the releases page and make sure it can be deployed
         run: |
-          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-static.zip
-          unzip -j -d /usr/local/bin cvc5-Linux-static.zip cvc5-Linux-static/bin/cvc5
-          rm cvc5-Linux-static.zip
+          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-x86_64-static.zip
+          unzip -j -d /usr/local/bin cvc5-Linux-x86_64-static.zip cvc5-Linux-x86_64-static/bin/cvc5
+          rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
         uses: actions/cache@v4
         with:
           save-always: true
           path: .ccache
-          key: ${{ runner.os }}-20.04-make-${{ github.ref }}-${{ github.sha }}-PR
+          key: ${{ runner.os }}-24.04-make-${{ github.ref }}-${{ github.sha }}-PR
           restore-keys: |
-            ${{ runner.os }}-20.04-make-${{ github.ref }}
-            ${{ runner.os }}-20.04-make
+            ${{ runner.os }}-24.04-make-${{ github.ref }}
+            ${{ runner.os }}-24.04-make
       - name: ccache environment
         run: |
           echo "CCACHE_BASEDIR=$PWD" >> $GITHUB_ENV
@@ -51,7 +51,7 @@ jobs:
       - name: Build with make
         run: |
           git clone https://github.com/conp-solutions/riss riss.git
-          cmake -Hriss.git -Briss.git/release -DCMAKE_BUILD_TYPE=Release
+          cmake -Hriss.git -Briss.git/release -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           make -C riss.git/release riss-coprocessor-lib-static -j${{env.linux-vcpus}}
           make -C src -j${{env.linux-vcpus}} CXX="ccache g++" LIBS="$PWD/riss.git/release/lib/libriss-coprocessor.a -lpthread" IPASIR=$PWD/riss.git/riss
           make -C jbmc/src -j${{env.linux-vcpus}} CXX="ccache g++" LIBS="$PWD/riss.git/release/lib/libriss-coprocessor.a -lpthread" IPASIR=$PWD/riss.git/riss
@@ -92,8 +92,8 @@ jobs:
           fi
 
   # This job takes approximately 25 to 34 minutes
-  check-ubuntu-20_04-make-clang:
-    runs-on: ubuntu-20.04
+  check-ubuntu-24_04-make-clang:
+    runs-on: ubuntu-24.04
     env:
       CC: "ccache /usr/bin/clang"
       CXX: "ccache /usr/bin/clang++"
@@ -108,26 +108,26 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -yq clang-10 clang++-10 gdb maven jq flex bison libxml2-utils cpanminus ccache z3
+          sudo apt-get install --no-install-recommends -yq clang-19 clang++-19 gdb maven jq flex bison libxml2-utils cpanminus ccache z3
           make -C src minisat2-download cadical-download
           cpanm Thread::Pool::Simple
       - name: Confirm z3 solver is available and log the version installed
         run: z3 --version
       - name: Download cvc-5 from the releases page and make sure it can be deployed
         run: |
-          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-static.zip
-          unzip -j -d /usr/local/bin cvc5-Linux-static.zip cvc5-Linux-static/bin/cvc5
-          rm cvc5-Linux-static.zip
+          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-x86_64-static.zip
+          unzip -j -d /usr/local/bin cvc5-Linux-x86_64-static.zip cvc5-Linux-x86_64-static/bin/cvc5
+          rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
         uses: actions/cache@v4
         with:
           save-always: true
           path: .ccache
-          key: ${{ runner.os }}-20.04-make-clang-${{ github.ref }}-${{ github.sha }}-PR
+          key: ${{ runner.os }}-24.04-make-clang-${{ github.ref }}-${{ github.sha }}-PR
           restore-keys: |
-            ${{ runner.os }}-20.04-make-clang-${{ github.ref }}
-            ${{ runner.os }}-20.04-make-clang
+            ${{ runner.os }}-24.04-make-clang-${{ github.ref }}
+            ${{ runner.os }}-24.04-make-clang
       - name: ccache environment
         run: |
           echo "CCACHE_BASEDIR=$PWD" >> $GITHUB_ENV
@@ -165,8 +165,8 @@ jobs:
   # The reason we opted for a new job is that adding a `test-z3` step to the current
   # jobs increases the job runtime to unacceptable levels (over 2hrs).
   # This job takes approximately 3 to 18 minutes
-  check-ubuntu-20_04-make-clang-smt-z3:
-    runs-on: ubuntu-20.04
+  check-ubuntu-24_04-make-clang-smt-z3:
+    runs-on: ubuntu-24.04
     env:
       CC: "ccache /usr/bin/clang"
       CXX: "ccache /usr/bin/clang++"
@@ -179,7 +179,7 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -yq clang-10 clang++-10 gdb maven jq flex bison libxml2-utils cpanminus ccache z3
+          sudo apt-get install --no-install-recommends -yq clang-19 clang++-19 gdb maven jq flex bison libxml2-utils cpanminus ccache z3
           make -C src minisat2-download
           cpanm Thread::Pool::Simple
       - name: Confirm z3 solver is available and log the version installed
@@ -189,10 +189,10 @@ jobs:
         with:
           save-always: true
           path: .ccache
-          key: ${{ runner.os }}-20.04-make-clang-${{ github.ref }}-${{ github.sha }}-PR
+          key: ${{ runner.os }}-24.04-make-clang-${{ github.ref }}-${{ github.sha }}-PR
           restore-keys: |
-            ${{ runner.os }}-20.04-make-clang-${{ github.ref }}
-            ${{ runner.os }}-20.04-make-clang
+            ${{ runner.os }}-24.04-make-clang-${{ github.ref }}
+            ${{ runner.os }}-24.04-make-clang
       - name: ccache environment
         run: |
           echo "CCACHE_BASEDIR=$PWD" >> $GITHUB_ENV
@@ -207,8 +207,8 @@ jobs:
         run: make -C regression/cbmc test-z3
 
   # This job takes approximately 17 to 42 minutes
-  check-ubuntu-20_04-cmake-gcc:
-    runs-on: ubuntu-20.04
+  check-ubuntu-24_04-cmake-gcc:
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -225,19 +225,19 @@ jobs:
         run: z3 --version
       - name: Download cvc-5 from the releases page and make sure it can be deployed
         run: |
-          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-static.zip
-          unzip -j -d /usr/local/bin cvc5-Linux-static.zip cvc5-Linux-static/bin/cvc5
-          rm cvc5-Linux-static.zip
+          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-x86_64-static.zip
+          unzip -j -d /usr/local/bin cvc5-Linux-x86_64-static.zip cvc5-Linux-x86_64-static/bin/cvc5
+          rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
         uses: actions/cache@v4
         with:
           save-always: true
           path: .ccache
-          key: ${{ runner.os }}-20.04-Release-${{ github.ref }}-${{ github.sha }}-PR
+          key: ${{ runner.os }}-24.04-Release-${{ github.ref }}-${{ github.sha }}-PR
           restore-keys: |
-            ${{ runner.os }}-20.04-Release-${{ github.ref }}
-            ${{ runner.os }}-20.04-Release
+            ${{ runner.os }}-24.04-Release-${{ github.ref }}
+            ${{ runner.os }}-24.04-Release
       - name: ccache environment
         run: |
           echo "CCACHE_BASEDIR=$PWD" >> $GITHUB_ENV
@@ -297,9 +297,9 @@ jobs:
         run: z3 --version
       - name: Download cvc-5 from the releases page and make sure it can be deployed
         run: |
-          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-static.zip
-          unzip -j -d /usr/local/bin cvc5-Linux-static.zip cvc5-Linux-static/bin/cvc5
-          rm cvc5-Linux-static.zip
+          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-x86_64-static.zip
+          unzip -j -d /usr/local/bin cvc5-Linux-x86_64-static.zip cvc5-Linux-x86_64-static/bin/cvc5
+          rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
         uses: actions/cache@v4
@@ -363,9 +363,9 @@ jobs:
         run: z3 --version
       - name: Download cvc-5 from the releases page and make sure it can be deployed
         run: |
-          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-static.zip
-          unzip -j -d /usr/local/bin cvc5-Linux-static.zip cvc5-Linux-static/bin/cvc5
-          rm cvc5-Linux-static.zip
+          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-x86_64-static.zip
+          unzip -j -d /usr/local/bin cvc5-Linux-x86_64-static.zip cvc5-Linux-x86_64-static/bin/cvc5
+          rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
         uses: actions/cache@v4
@@ -423,9 +423,9 @@ jobs:
         run: z3 --version
       - name: Download cvc-5 from the releases page and make sure it can be deployed
         run: |
-          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-static.zip
-          unzip -j -d /usr/local/bin cvc5-Linux-static.zip cvc5-Linux-static/bin/cvc5
-          rm cvc5-Linux-static.zip
+          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-x86_64-static.zip
+          unzip -j -d /usr/local/bin cvc5-Linux-x86_64-static.zip cvc5-Linux-x86_64-static/bin/cvc5
+          rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
         uses: actions/cache@v4
@@ -470,9 +470,9 @@ jobs:
         run: z3 --version
       - name: Download cvc-5 from the releases page and make sure it can be deployed
         run: |
-          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-static.zip
-          unzip -j -d /usr/local/bin cvc5-Linux-static.zip cvc5-Linux-static/bin/cvc5
-          rm cvc5-Linux-static.zip
+          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-x86_64-static.zip
+          unzip -j -d /usr/local/bin cvc5-Linux-x86_64-static.zip cvc5-Linux-x86_64-static/bin/cvc5
+          rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
         uses: actions/cache@v4
@@ -499,8 +499,8 @@ jobs:
         run: cd build; ctest . -V -L CORE -j${{env.linux-vcpus}}
 
   # This job takes approximately 2 to 24 minutes
-  check-ubuntu-20_04-cmake-gcc-KNOWNBUG:
-    runs-on: ubuntu-20.04
+  check-ubuntu-24_04-cmake-gcc-KNOWNBUG:
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -518,10 +518,10 @@ jobs:
         with:
           save-always: true
           path: .ccache
-          key: ${{ runner.os }}-20.04-Release-${{ github.ref }}-${{ github.sha }}-PR
+          key: ${{ runner.os }}-24.04-Release-${{ github.ref }}-${{ github.sha }}-PR
           restore-keys: |
-            ${{ runner.os }}-20.04-Release-${{ github.ref }}
-            ${{ runner.os }}-20.04-Release
+            ${{ runner.os }}-24.04-Release-${{ github.ref }}
+            ${{ runner.os }}-24.04-Release
       - name: ccache environment
         run: |
           echo "CCACHE_BASEDIR=$PWD" >> $GITHUB_ENV
@@ -546,8 +546,8 @@ jobs:
           ../test.pl -c "cbmc --cprover-smt2" -I broken-smt-backend -K
 
   # This job takes approximately 7 to 30 minutes
-  check-ubuntu-20_04-cmake-gcc-THOROUGH:
-    runs-on: ubuntu-20.04
+  check-ubuntu-24_04-cmake-gcc-THOROUGH:
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -565,10 +565,10 @@ jobs:
         with:
           save-always: true
           path: .ccache
-          key: ${{ runner.os }}-20.04-Release-${{ github.ref }}-${{ github.sha }}-PR
+          key: ${{ runner.os }}-24.04-Release-${{ github.ref }}-${{ github.sha }}-PR
           restore-keys: |
-            ${{ runner.os }}-20.04-Release-${{ github.ref }}
-            ${{ runner.os }}-20.04-Release
+            ${{ runner.os }}-24.04-Release-${{ github.ref }}
+            ${{ runner.os }}-24.04-Release
       - name: ccache environment
         run: |
           echo "CCACHE_BASEDIR=$PWD" >> $GITHUB_ENV
@@ -600,9 +600,9 @@ jobs:
         run: z3 --version
       - name: Download cvc5 binary and make sure it can be deployed
         run: |
-          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-macOS-static.zip
-          unzip -j -d /usr/local/bin cvc5-macOS-static.zip cvc5-macOS-static/bin/cvc5
-          rm cvc5-macOS-static.zip
+          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-macOS-x86_64-static.zip
+          unzip -j -d /usr/local/bin cvc5-macOS-x86_64-static.zip cvc5-macOS-x86_64-static/bin/cvc5
+          rm cvc5-macOS-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
         uses: actions/cache@v4
@@ -652,9 +652,9 @@ jobs:
         run: z3 --version
       - name: Download cvc5 binary and make sure it can be deployed
         run: |
-          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-macOS-static.zip
-          unzip -j -d /usr/local/bin cvc5-macOS-static.zip cvc5-macOS-static/bin/cvc5
-          rm cvc5-macOS-static.zip
+          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-macOS-arm64-static.zip
+          unzip -j -d /usr/local/bin cvc5-macOS-arm64-static.zip cvc5-macOS-arm64-static/bin/cvc5
+          rm cvc5-macOS-arm64-static.zip
           cvc5 --version
       - name: Prepare ccache
         uses: actions/cache@v4
@@ -708,9 +708,9 @@ jobs:
           Expand-Archive -LiteralPath '.\z3.Zip' -DestinationPath C:\tools
           echo "c:\tools\z3-4.8.10-x64-win\bin;" >> $env:GITHUB_PATH
           New-Item -ItemType directory "C:\tools\cvc5"
-          Invoke-WebRequest -Uri https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Win64-static.zip -OutFile .\cvc5-Win64-static.zip
-          Expand-Archive -LiteralPath '.\cvc5-Win64-static.Zip'
-          Move-Item -Path .\cvc5-Win64-static\cvc5-Win64-static\bin\cvc5.exe c:\tools\cvc5\cvc5.exe
+          Invoke-WebRequest -Uri https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Win64-x86_64-static.zip -OutFile .\cvc5-Win64-x86_64-static.zip
+          Expand-Archive -LiteralPath '.\cvc5-Win64-x86_64-static.Zip'
+          Move-Item -Path .\cvc5-Win64-x86_64-static\cvc5-Win64-x86_64-static\bin\cvc5.exe c:\tools\cvc5\cvc5.exe
           echo "c:\tools\cvc5;" >> $env:GITHUB_PATH
       - name: Confirm z3 solver is available and log the version installed
         run: z3 --version
@@ -771,9 +771,9 @@ jobs:
           Expand-Archive -LiteralPath '.\z3.Zip' -DestinationPath C:\tools
           echo "c:\tools\z3-4.8.10-x64-win\bin;" >> $env:GITHUB_PATH
           New-Item -ItemType directory "C:\tools\cvc5"
-          Invoke-WebRequest -Uri https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Win64-static.zip -OutFile .\cvc5-Win64-static.zip
-          Expand-Archive -LiteralPath '.\cvc5-Win64-static.Zip'
-          Move-Item -Path .\cvc5-Win64-static\cvc5-Win64-static\bin\cvc5.exe c:\tools\cvc5\cvc5.exe
+          Invoke-WebRequest -Uri https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Win64-x86_64-static.zip -OutFile .\cvc5-Win64-x86_64-static.zip
+          Expand-Archive -LiteralPath '.\cvc5-Win64-x86_64-static.Zip'
+          Move-Item -Path .\cvc5-Win64-x86_64-static\cvc5-Win64-x86_64-static\bin\cvc5.exe c:\tools\cvc5\cvc5.exe
           echo "c:\tools\cvc5;" >> $env:GITHUB_PATH
           New-Item -ItemType directory "C:\tools\parallel"
           wget.exe -O c:\tools\parallel\parallel https://git.savannah.gnu.org/cgit/parallel.git/plain/src/parallel
@@ -877,7 +877,7 @@ jobs:
 
   # This job takes approximately 2 to 3 minutes
   check-string-table:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Check for unused irep ids
@@ -885,7 +885,7 @@ jobs:
 
   # This job takes approximately 23 to 29 minutes
   check-docker-image:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -909,7 +909,7 @@ jobs:
 
   # This job takes approximately 22 to 41 minutes
   include-what-you-use:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -921,9 +921,9 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -yq cmake ninja-build gcc gdb g++ maven flex bison iwyu
+          sudo apt-get install --no-install-recommends -yq cmake ninja-build clang-19 clang++-19 gdb maven flex bison iwyu
       - name: Configure using CMake
-        run: cmake -S . -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++
+        run: cmake -S . -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++
       - name: Run include-what-you-use
         run: |
           iwyu_tool -p build/compile_commands.json -j${{env.linux-vcpus}} | tee includes.txt

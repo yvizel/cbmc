@@ -16,6 +16,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/byte_operators.h>
 #include <util/c_types.h>
 #include <util/exception_utils.h>
+#include <util/expr_iterator.h>
 #include <util/expr_util.h>
 #include <util/invariant.h>
 #include <util/std_expr.h>
@@ -24,22 +25,26 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <pointer-analysis/add_failed_symbols.h>
 
 #include "goto_symex_can_forward_propagate.h"
+#include "simplify_expr_with_value_set.h"
 #include "symex_target_equation.h"
-
-static void get_l1_name(exprt &expr);
 
 goto_symex_statet::goto_symex_statet(
   const symex_targett::sourcet &_source,
   std::size_t max_field_sensitive_array_size,
   bool should_simplify,
+  const irep_idt &language_mode,
   guard_managert &manager,
   std::function<std::size_t(const irep_idt &)> fresh_l2_name_provider)
   : goto_statet(manager),
     source(_source),
     guard_manager(manager),
     symex_target(nullptr),
-    field_sensitivity(max_field_sensitive_array_size, should_simplify),
+    field_sensitivity(
+      max_field_sensitive_array_size,
+      should_simplify,
+      language_mode),
     record_events({true}),
+    language_mode(language_mode),
     fresh_l2_name_provider(fresh_l2_name_provider)
 {
   threads.emplace_back(guard_manager);
@@ -85,7 +90,7 @@ renamedt<ssa_exprt, L2> goto_symex_statet::assignment(
   // the type might need renaming
   rename<L2>(lhs.type(), l1_identifier, ns);
   if(rhs_is_simplified)
-    simplify(lhs, ns);
+    simplify_expr_with_value_sett{value_set, language_mode, ns}.simplify(lhs);
   lhs.update_type();
   if(run_validation_checks)
   {
@@ -123,20 +128,7 @@ renamedt<ssa_exprt, L2> goto_symex_statet::assignment(
   else
     propagation.erase_if_exists(l1_identifier);
 
-  {
-    // update value sets
-    exprt l1_rhs(rhs);
-    get_l1_name(l1_rhs);
-
-    const ssa_exprt l1_lhs = remove_level_2(lhs);
-    if(run_validation_checks)
-    {
-      DATA_INVARIANT(!check_renaming_l1(l1_lhs), "lhs renaming failed on l1");
-      DATA_INVARIANT(!check_renaming_l1(l1_rhs), "rhs renaming failed on l1");
-    }
-
-    value_set.assign(l1_lhs, l1_rhs, ns, rhs_is_simplified, is_shared);
-  }
+  value_set.assign(lhs, rhs, ns, rhs_is_simplified, is_shared);
 
 #ifdef DEBUG
   std::cout << "Assigning " << l1_identifier << '\n';
@@ -353,9 +345,9 @@ exprt goto_symex_statet::l2_rename_rvalues(exprt lvalue, const namespacet &ns)
     // The condition is an rvalue:
     auto &if_lvalue = to_if_expr(lvalue);
     if_lvalue.cond() = rename(if_lvalue.cond(), ns);
-    if(!if_lvalue.cond().is_false())
+    if(if_lvalue.cond() != false)
       if_lvalue.true_case() = l2_rename_rvalues(if_lvalue.true_case(), ns);
-    if(!if_lvalue.cond().is_true())
+    if(if_lvalue.cond() != true)
       if_lvalue.false_case() = l2_rename_rvalues(if_lvalue.false_case(), ns);
   }
   else if(lvalue.id() == ID_complex_real)
@@ -450,7 +442,7 @@ bool goto_symex_statet::l2_thread_read_encoding(
     }
 
     guardt cond = read_guard;
-    if(!no_write.op().is_false())
+    if(no_write.op() != false)
       cond |= guardt{no_write.op(), guard_manager};
 
     // It is safe to perform constant propagation in case we have read or
@@ -494,7 +486,7 @@ bool goto_symex_statet::l2_thread_read_encoding(
     expr = std::move(ssa_l2);
 
     a_s_read.second.push_back(guard);
-    if(!no_write.op().is_false())
+    if(no_write.op() != false)
       a_s_read.second.back().add(no_write);
 
     return true;
@@ -783,17 +775,6 @@ void goto_symex_statet::rename(
     l1_type_entry.first->second=type;
 }
 
-static void get_l1_name(exprt &expr)
-{
-  // do not reset the type !
-
-  if(is_ssa_expr(expr))
-    to_ssa_expr(expr).remove_level_2();
-  else
-    Forall_operands(it, expr)
-      get_l1_name(*it);
-}
-
 /// Dumps the current state of symex, printing the function name and location
 /// number for each stack frame in the currently active thread.
 /// This is for use from the debugger or in debug code; please don't delete it
@@ -870,7 +851,9 @@ ssa_exprt goto_symex_statet::declare(ssa_exprt ssa, const namespacet &ns)
 
   // L2 renaming
   exprt fields = field_sensitivity.get_fields(ns, *this, ssa, false);
-  fields.visit_pre([this](const exprt &e) {
+
+  for(auto &e : pre_traversal(fields))
+  {
     if(auto l1_symbol = expr_try_dynamic_cast<symbol_exprt>(e))
     {
       const ssa_exprt &field_ssa = to_ssa_expr(*l1_symbol);
@@ -885,7 +868,7 @@ ssa_exprt goto_symex_statet::declare(ssa_exprt ssa, const namespacet &ns)
         ssa.get_identifier(), ssa, fresh_l2_name_provider);
       CHECK_RETURN(field_generation == 1);
     }
-  });
+  };
 
   record_events.push(false);
   exprt expr_l2 = rename(std::move(ssa), ns).get();

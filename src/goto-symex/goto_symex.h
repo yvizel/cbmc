@@ -27,6 +27,7 @@ class shadow_memory_field_definitionst;
 class side_effect_exprt;
 class symex_assignt;
 class typet;
+class value_sett;
 
 /// \brief The main class for the forward symbolic simulator
 /// \remarks
@@ -234,13 +235,10 @@ protected:
   messaget::mstreamt &
   print_callstack_entry(const symex_targett::sourcet &target);
 
-public:
-
   /// language_mode: ID_java, ID_C or another language identifier
   /// if we know the source language in use, irep_idt() otherwise.
   irep_idt language_mode;
 
-protected:
   /// The symbol table associated with the goto-program being executed.
   /// This symbol table will not have objects that are dynamically created as
   /// part of symbolic execution added to it; those object are stored in the
@@ -528,7 +526,7 @@ protected:
   /// \param state: Symbolic execution state for current instruction
   void symex_catch(statet &state);
 
-  virtual void do_simplify(exprt &expr);
+  virtual void do_simplify(exprt &expr, const value_sett &value_set);
 
   /// Symbolically execute an ASSIGN instruction or simulate such an execution
   /// for a synthetic assignment
@@ -875,21 +873,5 @@ void symex_transition(
   goto_symext::statet &,
   goto_programt::const_targett to,
   bool is_backwards_goto);
-
-/// Try to evaluate pointer comparisons where they can be trivially determined
-/// using the value-set. This is optional as all it does is allow symex to
-/// resolve some comparisons itself and therefore create a simpler formula for
-/// the SAT solver.
-/// \param [in,out] condition: An L2-renamed expression with boolean type
-/// \param value_set: The value-set for determining what pointer-typed symbols
-///   might possibly point to
-/// \param language_mode: The language mode
-/// \param ns: A namespace
-/// \return The possibly modified condition
-renamedt<exprt, L2> try_evaluate_pointer_comparisons(
-  renamedt<exprt, L2> condition,
-  const value_sett &value_set,
-  const irep_idt &language_mode,
-  const namespacet &ns);
 
 #endif // CPROVER_GOTO_SYMEX_GOTO_SYMEX_H

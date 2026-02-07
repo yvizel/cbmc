@@ -14,7 +14,7 @@ jobs:
   check-ubuntu-24_04-make-gcc:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
@@ -34,7 +34,7 @@ jobs:
           rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -72,9 +72,10 @@ jobs:
           make TAGS="[!shouldfail]" -C jbmc/unit test IPASIR=$PWD/riss.git/riss
       - name: Run regression tests
         run: |
+          export PATH=$PATH:`pwd`/src/solvers
           make -C regression test-parallel JOBS=${{env.linux-vcpus}} LIBS="$PWD/riss.git/release/lib/libriss-coprocessor.a -lpthread" IPASIR=$PWD/riss.git/riss
           make -C regression/cbmc test-paths-lifo
-          env PATH=$PATH:`pwd`/src/solvers make -C regression/cbmc test-cprover-smt2
+          make -C regression/cbmc test-cprover-smt2
           make -C jbmc/regression test-parallel JOBS=${{env.linux-vcpus}}
       - name: Check cleanup
         run: |
@@ -98,7 +99,7 @@ jobs:
       CC: "ccache /usr/bin/clang"
       CXX: "ccache /usr/bin/clang++"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
@@ -120,7 +121,7 @@ jobs:
           rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -153,9 +154,10 @@ jobs:
           make TAGS="[!shouldfail]" -C jbmc/unit test
       - name: Run regression tests
         run: |
+          export PATH=$PATH:`pwd`/src/solvers
           make -C regression test-parallel JOBS=${{env.linux-vcpus}}
           make -C regression/cbmc test-paths-lifo
-          env PATH=$PATH:`pwd`/src/solvers make -C regression/cbmc test-cprover-smt2
+          make -C regression/cbmc test-cprover-smt2
           make -C jbmc/regression test-parallel JOBS=${{env.linux-vcpus}}
 
   # This job has been copied from the one above it, and modified to only build CBMC
@@ -171,7 +173,7 @@ jobs:
       CC: "ccache /usr/bin/clang"
       CXX: "ccache /usr/bin/clang++"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
@@ -185,7 +187,7 @@ jobs:
       - name: Confirm z3 solver is available and log the version installed
         run: z3 --version
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -210,7 +212,7 @@ jobs:
   check-ubuntu-24_04-cmake-gcc:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
@@ -230,7 +232,7 @@ jobs:
           rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -280,7 +282,7 @@ jobs:
       CC: "ccache /usr/bin/clang"
       CXX: "ccache /usr/bin/clang++"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
@@ -302,7 +304,7 @@ jobs:
           rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -339,16 +341,17 @@ jobs:
           make TAGS="[!shouldfail]" -C jbmc/unit test
       - name: Run regression tests
         run: |
+          export PATH=$PATH:`pwd`/src/solvers
           make -C regression test-parallel JOBS=${{env.linux-vcpus}}
           make -C regression/cbmc test-paths-lifo
-          env PATH=$PATH:`pwd`/src/solvers make -C regression/cbmc test-cprover-smt2
+          make -C regression/cbmc test-cprover-smt2
           make -C jbmc/regression test-parallel JOBS=${{env.linux-vcpus}}
 
   # This job takes approximately 17 to 41 minutes
   check-ubuntu-22_04-cmake-gcc:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
@@ -368,7 +371,7 @@ jobs:
           rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -402,7 +405,7 @@ jobs:
   check-ubuntu-24_04-cmake-gcc-14:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
@@ -428,7 +431,7 @@ jobs:
           rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -451,11 +454,65 @@ jobs:
       - name: Run tests
         run: cd build; ctest . -V -L CORE -j${{env.linux-vcpus}}
 
+  # This job takes approximately 17 to 41 minutes
+  check-ubuntu-24_04-arm-cmake-gcc:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Fetch dependencies
+        env:
+          # This is needed in addition to -yq to prevent apt-get from asking for
+          # user input
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -yq cmake ninja-build gcc gdb g++ maven flex bison libxml2-utils dpkg-dev ccache doxygen graphviz z3
+      - name: Confirm z3 solver is available and log the version installed
+        run: z3 --version
+      - name: Download cvc-5 from the releases page and make sure it can be deployed
+        run: |
+          wget https://github.com/cvc5/cvc5/releases/download/cvc5-${{env.cvc5-version}}/cvc5-Linux-arm64-static.zip
+          unzip -j -d /usr/local/bin cvc5-Linux-arm64-static.zip cvc5-Linux-arm64-static/bin/cvc5
+          rm cvc5-Linux-arm64-static.zip
+          cvc5 --version
+      - name: Prepare ccache
+        uses: actions/cache@v5
+        with:
+          save-always: true
+          path: .ccache
+          key: ${{ runner.os }}-24.04-Arm-Release-${{ github.ref }}-${{ github.sha }}-PR
+          restore-keys: |
+            ${{ runner.os }}-24.04-Arm-Release-${{ github.ref }}
+            ${{ runner.os }}-24.04-Arm-Release
+      - name: ccache environment
+        run: |
+          echo "CCACHE_BASEDIR=$PWD" >> $GITHUB_ENV
+          echo "CCACHE_DIR=$PWD/.ccache" >> $GITHUB_ENV
+      - name: Configure using CMake
+        run: cmake -S . -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -Dsat_impl="minisat2;cadical"
+      - name: Check that doc task works
+        run: ninja -C build doc
+      - name: Zero ccache stats and limit in size
+        run: ccache -z --max-size=500M
+      - name: Build with Ninja
+        run: ninja -C build -j${{env.linux-vcpus}}
+      - name: Print ccache stats
+        run: ccache -s
+      - name: Check if package building works
+        run: |
+          cd build
+          ninja package
+          ls *.deb
+      - name: Run tests
+        run: cd build; ctest . -V -L CORE -j${{env.linux-vcpus}}
+
   # This job takes approximately 14 to 60 minutes
   check-ubuntu-22_04-cmake-gcc-32bit:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
@@ -475,7 +532,7 @@ jobs:
           rm cvc5-Linux-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -488,7 +545,7 @@ jobs:
           echo "CCACHE_BASEDIR=$PWD" >> $GITHUB_ENV
           echo "CCACHE_DIR=$PWD/.ccache" >> $GITHUB_ENV
       - name: Configure using CMake
-        run: cmake -S . -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -Dsat_impl="minisat2;cadical" -DCMAKE_CXX_FLAGS=-m32
+        run: cmake -S . -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -Dsat_impl="minisat2;cadical" -DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32
       - name: Zero ccache stats and limit in size
         run: ccache -z --max-size=500M
       - name: Build with Ninja
@@ -502,7 +559,7 @@ jobs:
   check-ubuntu-24_04-cmake-gcc-KNOWNBUG:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
@@ -514,7 +571,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -yq cmake ninja-build gcc g++ maven flex bison libxml2-utils ccache z3
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -549,7 +606,7 @@ jobs:
   check-ubuntu-24_04-cmake-gcc-THOROUGH:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
@@ -561,7 +618,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -yq cmake ninja-build gcc g++ maven flex bison libxml2-utils ccache z3
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -585,10 +642,10 @@ jobs:
         run: cd build; ctest . -V -L THOROUGH -j${{env.linux-vcpus}}
 
   # This job takes approximately 39 to 69 minutes
-  check-macos-13-make-clang:
-    runs-on: macos-13
+  check-macos-15-intel-make-clang:
+    runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
@@ -605,7 +662,7 @@ jobs:
           rm cvc5-macOS-x86_64-static.zip
           cvc5 --version
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -635,7 +692,9 @@ jobs:
       - name: Run JBMC unit tests
         run: cd jbmc/unit; ./unit_tests
       - name: Run regression tests
-        run: make -C regression test-parallel JOBS=4
+        run: |
+          export PATH=$PATH:`pwd`/src/solvers
+          make -C regression test-parallel JOBS=4
       - name: Run JBMC regression tests
         run: make -C jbmc/regression test-parallel JOBS=4
 
@@ -643,11 +702,11 @@ jobs:
   check-macos-14-cmake-clang:
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
-        run: brew install cmake ninja maven flex bison ccache z3
+        run: brew install ninja maven flex bison ccache z3
       - name: Confirm z3 solver is available and log the version installed
         run: z3 --version
       - name: Download cvc5 binary and make sure it can be deployed
@@ -657,7 +716,7 @@ jobs:
           rm cvc5-macOS-arm64-static.zip
           cvc5 --version
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -684,12 +743,12 @@ jobs:
         run: cd build; ctest -V -L CORE . -j3
 
   # This job takes approximately 49 to 70 minutes
-  check-vs-2019-cmake-build-and-test:
-    runs-on: windows-2019
+  check-vs-2025-cmake-build-and-test:
+    runs-on: windows-2025
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Setup Visual Studio environment
@@ -717,7 +776,7 @@ jobs:
       - name: Confirm cvc5 solver is available and log the version installed
         run: cvc5 --version
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -745,13 +804,13 @@ jobs:
           Set-Location build
           ctest -V -L CORE -C Release . -j${{env.windows-vcpus}}
 
-  # This job takes approximately 18 to 84 minutes
+  # This job takes approximately 65 to 84 minutes
   check-vs-2022-make-build-and-test:
     runs-on: windows-2022
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Setup MSBuild
@@ -775,9 +834,6 @@ jobs:
           Expand-Archive -LiteralPath '.\cvc5-Win64-x86_64-static.Zip'
           Move-Item -Path .\cvc5-Win64-x86_64-static\cvc5-Win64-x86_64-static\bin\cvc5.exe c:\tools\cvc5\cvc5.exe
           echo "c:\tools\cvc5;" >> $env:GITHUB_PATH
-          New-Item -ItemType directory "C:\tools\parallel"
-          wget.exe -O c:\tools\parallel\parallel https://git.savannah.gnu.org/cgit/parallel.git/plain/src/parallel
-          echo "c:\tools\parallel" >> $env:GITHUB_PATH
       - name: Confirm z3 solver is available and log the version installed
         run: z3 --version
       - name: Confirm cvc5 solver is available and log the version installed
@@ -785,7 +841,7 @@ jobs:
       - name: Initialise Developer Command Line
         uses: ilammy/msvc-dev-cmd@v1
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -804,7 +860,9 @@ jobs:
       - name: Download minisat with make
         run: make -C src minisat2-download
       - name: Build CBMC with make
-        run: make CXX=clcache BUILD_ENV=MSVC -j${{env.windows-vcpus}} -C src
+        run: |
+          make CXX=clcache BUILD_ENV=MSVC -j${{env.windows-vcpus}} -C src
+          echo "$pwd\src\solvers;" >> $env:GITHUB_PATH
       - name: Build unit tests with make
         run: make CXX=clcache BUILD_ENV=MSVC -j${{env.windows-vcpus}} -C unit all
       - name: Build jbmc with make
@@ -821,15 +879,15 @@ jobs:
           make CXX=clcache BUILD_ENV=MSVC -C unit test TAGS="[z3]"
           make CXX=clcache BUILD_ENV=MSVC -C jbmc/unit test
       - name: Run CBMC regression tests
-        run: make CXX=clcache BUILD_ENV=MSVC -C regression test-parallel JOBS=${{env.windows-vcpus}}
+        run: make CXX=clcache BUILD_ENV=MSVC -C regression test
 
   # This job takes approximately 7 to 32 minutes
   windows-msi-package:
-    runs-on: windows-2019
+    runs-on: windows-2025
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Setup Visual Studio environment
@@ -845,7 +903,7 @@ jobs:
           nuget install clcache -OutputDirectory "c:\tools" -ExcludeVersion -Version 4.1.0
           echo "c:\tools\clcache\clcache-4.1.0" >> $env:GITHUB_PATH
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -879,7 +937,7 @@ jobs:
   check-string-table:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check for unused irep ids
         run: ./scripts/string_table_check.sh
 
@@ -887,7 +945,7 @@ jobs:
   check-docker-image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Download test dependencies
@@ -911,7 +969,7 @@ jobs:
   include-what-you-use:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies

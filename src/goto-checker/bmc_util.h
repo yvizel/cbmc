@@ -12,7 +12,8 @@ Author: Daniel Kroening, Peter Schrammel
 #ifndef CPROVER_GOTO_CHECKER_BMC_UTIL_H
 #define CPROVER_GOTO_CHECKER_BMC_UTIL_H
 
-#include <goto-instrument/unwindset.h>
+#include <goto-programs/unwindset.h>
+
 #include <goto-symex/build_goto_trace.h>
 
 #include "incremental_goto_checker.h"
@@ -67,12 +68,6 @@ void output_graphml(
 
 std::unique_ptr<memory_model_baset>
 get_memory_model(const optionst &options, const namespacet &);
-
-void setup_symex(
-  symex_bmct &,
-  const namespacet &,
-  const optionst &,
-  ui_message_handlert &);
 
 void slice(
   symex_bmct &,

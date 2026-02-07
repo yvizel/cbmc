@@ -20,6 +20,7 @@ Author: Remi Delmas, delmarsd@amazon.com
 
 #include <goto-programs/goto_function.h>
 #include <goto-programs/goto_model.h>
+#include <goto-programs/unwindset.h>
 
 #include <ansi-c/c_expr.h>
 #include <ansi-c/c_object_factory_parameters.h>
@@ -27,7 +28,6 @@ Author: Remi Delmas, delmarsd@amazon.com
 #include <ansi-c/goto-conversion/goto_convert_functions.h>
 #include <goto-instrument/generate_function_bodies.h>
 #include <goto-instrument/unwind.h>
-#include <goto-instrument/unwindset.h>
 #include <linking/static_lifetime_init.h>
 
 #include "dfcc_utils.h"
@@ -439,7 +439,6 @@ void dfcc_libraryt::specialize(const std::size_t contract_assigns_size)
     "dfcc_libraryt::specialize_functions can only be called once");
 
   specialized = true;
-  unwindsett unwindset{goto_model};
   std::list<std::string> loop_names;
 
   for(const auto &entry : to_unwind)
@@ -452,7 +451,8 @@ void dfcc_libraryt::specialize(const std::size_t contract_assigns_size)
     const auto &str = stream.str();
     loop_names.push_back(str);
   }
-  unwindset.parse_unwindset(loop_names, message_handler);
+  unwindsett unwindset;
+  unwindset.parse_unwindset(loop_names, goto_model, message_handler);
   goto_unwindt goto_unwind;
   goto_unwind(
     goto_model, unwindset, goto_unwindt::unwind_strategyt::ASSERT_ASSUME);
@@ -903,7 +903,7 @@ const code_function_callt dfcc_libraryt::ptr_pred_ctx_reset_call(
   const source_locationt &source_location)
 {
   code_function_callt call(
-    dfcc_fun_symbol[dfcc_funt::PTR_PRED_CTX_INIT].symbol_expr(),
+    dfcc_fun_symbol[dfcc_funt::PTR_PRED_CTX_RESET].symbol_expr(),
     {ptr_pred_ctx_ptr});
   call.add_source_location() = source_location;
   return call;

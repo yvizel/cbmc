@@ -247,7 +247,7 @@ TEST_CASE("Simplify pointer_object equality", "[core][util]")
 
   exprt simp = simplify_expr(equal_exprt{p_o_void, p_o_int}, ns);
 
-  REQUIRE(simp.is_true());
+  REQUIRE(simp == true);
 }
 
 TEST_CASE("Simplify cast from bool", "[core][util]")
@@ -584,5 +584,29 @@ TEST_CASE("Simplify power", "[core][util]")
 
     REQUIRE(
       simplify_expr(power_exprt{a, from_integer(1, integer_typet{})}, ns) == a);
+  }
+}
+
+TEST_CASE("Simplify quantifier", "[core][util]")
+{
+  const symbol_tablet symbol_table;
+  const namespacet ns{symbol_table};
+
+  SECTION("Simplification for exists")
+  {
+    symbol_exprt a{"a", integer_typet{}};
+
+    REQUIRE(simplify_expr(exists_exprt{a, false_exprt{}}, ns) == false_exprt{});
+
+    REQUIRE(simplify_expr(exists_exprt{a, true_exprt{}}, ns) == true_exprt{});
+  }
+
+  SECTION("Simplification for forall")
+  {
+    symbol_exprt a{"a", integer_typet{}};
+
+    REQUIRE(simplify_expr(forall_exprt{a, false_exprt{}}, ns) == false_exprt{});
+
+    REQUIRE(simplify_expr(forall_exprt{a, true_exprt{}}, ns) == true_exprt{});
   }
 }

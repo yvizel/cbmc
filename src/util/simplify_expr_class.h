@@ -68,6 +68,7 @@ class popcount_exprt;
 class power_exprt;
 class prophecy_pointer_in_range_exprt;
 class prophecy_r_or_w_ok_exprt;
+class quantifier_exprt;
 class refined_string_exprt;
 class shift_exprt;
 class sign_exprt;
@@ -174,7 +175,8 @@ public:
   [[nodiscard]] resultt<> simplify_bitnot(const bitnot_exprt &);
   [[nodiscard]] resultt<> simplify_not(const not_exprt &);
   [[nodiscard]] resultt<> simplify_boolean(const exprt &);
-  [[nodiscard]] resultt<> simplify_inequality(const binary_relation_exprt &);
+  [[nodiscard]] virtual resultt<>
+  simplify_inequality(const binary_relation_exprt &);
   [[nodiscard]] resultt<>
   simplify_ieee_float_relation(const binary_relation_exprt &);
   [[nodiscard]] resultt<> simplify_lambda(const lambda_exprt &);
@@ -201,7 +203,8 @@ public:
   [[nodiscard]] resultt<>
   simplify_dereference_preorder(const dereference_exprt &);
   [[nodiscard]] resultt<> simplify_address_of(const address_of_exprt &);
-  [[nodiscard]] resultt<> simplify_pointer_offset(const pointer_offset_exprt &);
+  [[nodiscard]] virtual resultt<>
+  simplify_pointer_offset(const pointer_offset_exprt &);
   [[nodiscard]] resultt<> simplify_bswap(const bswap_exprt &);
   [[nodiscard]] resultt<> simplify_isinf(const unary_exprt &);
   [[nodiscard]] resultt<> simplify_isnan(const unary_exprt &);
@@ -254,6 +257,9 @@ public:
   [[nodiscard]] resultt<>
   simplify_prophecy_pointer_in_range(const prophecy_pointer_in_range_exprt &);
 
+  /// Try to simplify exists/forall to a constant expression.
+  [[nodiscard]] resultt<> simplify_quantifier_expr(const quantifier_exprt &);
+
   // auxiliary
   bool simplify_if_implies(
     exprt &expr, const exprt &cond, bool truth, bool &new_truth);
@@ -271,7 +277,7 @@ public:
   simplify_inequality_rhs_is_constant(const binary_relation_exprt &);
   [[nodiscard]] resultt<>
   simplify_inequality_address_of(const binary_relation_exprt &);
-  [[nodiscard]] resultt<>
+  [[nodiscard]] virtual resultt<>
   simplify_inequality_pointer_object(const binary_relation_exprt &);
 
   // main recursion

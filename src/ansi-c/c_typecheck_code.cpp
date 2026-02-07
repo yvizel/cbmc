@@ -105,20 +105,23 @@ void c_typecheck_baset::typecheck_code(codet &code)
   }
   else if(statement==ID_static_assert)
   {
-    PRECONDITION(code.operands().size() == 2);
+    // C23 allows static_assert without message
+    PRECONDITION(code.operands().size() == 1 || code.operands().size() == 2);
 
     typecheck_expr(code.op0());
-    typecheck_expr(code.op1());
+
+    if(code.operands().size() == 2)
+      typecheck_expr(code.op1());
 
     implicit_typecast_bool(code.op0());
     make_constant(code.op0());
 
-    if(code.op0().is_false())
+    if(code.op0() == false)
     {
       // failed
       error().source_location = code.find_source_location();
       error() << "static assertion failed";
-      if(code.op1().id() == ID_string_constant)
+      if(code.operands().size() == 2 && code.op1().id() == ID_string_constant)
         error() << ": " << to_string_constant(code.op1()).value();
       error() << eom;
       throw 0;
@@ -948,7 +951,7 @@ void c_typecheck_baset::typecheck_conditional_targets(
     auto &condition = conditional_target_group.condition();
     typecheck_spec_condition(condition);
 
-    if(condition.is_true())
+    if(condition == true)
     {
       // if the condition is trivially true,
       // simplify expr and expose the bare expressions

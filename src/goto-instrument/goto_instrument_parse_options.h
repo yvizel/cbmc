@@ -24,6 +24,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/restrict_function_pointers.h>
 #include <goto-programs/show_goto_functions.h>
 #include <goto-programs/show_properties.h>
+#include <goto-programs/unwindset.h>
 
 #include <ansi-c/ansi_c_language.h>
 #include <ansi-c/goto-conversion/goto_check_c.h>
@@ -39,7 +40,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "reachability_slicer.h"
 #include "replace_calls.h"
 #include "uninitialized.h"
-#include "unwindset.h"
 
 #include "contracts/contracts.h"
 #include "contracts/contracts_wrangler.h"
@@ -110,7 +110,8 @@ Author: Daniel Kroening, kroening@kroening.com
   OPT_ENFORCE_CONTRACT_REC \
   "(show-threaded)(list-calls-args)" \
   "(undefined-function-is-assume-false)" \
-  "(remove-function-body):"\
+  "(remove-function-body):" \
+  "(remove-function-body-regex):" \
   OPT_AGGRESSIVE_SLICER \
   OPT_FLUSH \
   "(splice-call):" \

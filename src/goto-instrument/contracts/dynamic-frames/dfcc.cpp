@@ -9,42 +9,22 @@ Author: Remi Delmas, delmarsd@amazon.com
 #include "dfcc.h"
 
 #include <util/config.h>
-#include <util/expr_util.h>
-#include <util/format_expr.h>
-#include <util/format_type.h>
-#include <util/fresh_symbol.h>
-#include <util/mathematical_expr.h>
-#include <util/mathematical_types.h>
-#include <util/namespace.h>
-#include <util/pointer_expr.h>
-#include <util/pointer_offset_size.h>
-#include <util/pointer_predicates.h>
 #include <util/prefix.h>
-#include <util/std_expr.h>
 #include <util/string_utils.h>
 
-#include <goto-programs/goto_functions.h>
-#include <goto-programs/goto_inline.h>
-#include <goto-programs/goto_model.h>
-#include <goto-programs/initialize_goto_model.h>
 #include <goto-programs/remove_skip.h>
 #include <goto-programs/remove_unused_functions.h>
 
 #include <ansi-c/ansi_c_entry_point.h>
-#include <ansi-c/c_expr.h>
 #include <ansi-c/c_object_factory_parameters.h>
 #include <ansi-c/cprover_library.h>
-#include <ansi-c/goto-conversion/goto_convert_functions.h>
 #include <ansi-c/goto-conversion/link_to_library.h>
-#include <goto-instrument/contracts/cfg_info.h>
-#include <goto-instrument/contracts/utils.h>
+#include <goto-instrument/generate_function_bodies.h>
 #include <goto-instrument/nondet_static.h>
-#include <langapi/language.h>
-#include <langapi/language_file.h>
-#include <langapi/mode.h>
 #include <linking/static_lifetime_init.h>
 
 #include "dfcc_lift_memory_predicates.h"
+#include "dfcc_utils.h"
 
 invalid_function_contract_pair_exceptiont::
   invalid_function_contract_pair_exceptiont(
@@ -257,6 +237,12 @@ void dfcct::partition_function_symbols(
   std::set<irep_idt> &contract_symbols,
   std::set<irep_idt> &other_symbols)
 {
+  std::set<irep_idt> called_functions;
+  find_used_functions(
+    goto_functionst::entry_point(),
+    goto_model.goto_functions,
+    called_functions);
+
   // collect contract and other symbols
   for(auto &entry : goto_model.symbol_table)
   {
@@ -272,7 +258,7 @@ void dfcct::partition_function_symbols(
     {
       contract_symbols.insert(sym_name);
     }
-    else
+    else if(called_functions.find(sym_name) != called_functions.end())
     {
       // it is not a contract
       other_symbols.insert(sym_name);
@@ -486,21 +472,6 @@ void dfcct::transform_goto_model()
 
   library.inhibit_front_end_builtins();
 
-  // TODO implement a means to inhibit unreachable functions (possibly via the
-  // code that implements drop-unused-functions followed by
-  // generate-function-bodies):
-  // Traverse the call tree from the given entry point to identify
-  // functions symbols that are effectively called in the model,
-  // Then goes over all functions of the model and turns the bodies of all
-  // functions that are not in the used function set into:
-  //  ```c
-  //  assert(false, "function identified as unreachable");
-  //  assume(false);
-  //  ```
-  // That way, if the analysis mistakenly pruned some functions, assertions
-  // will be violated and the analysis will fail.
-  // TODO: add a command line flag to tell the instrumentation to not prune
-  // a function.
   goto_model.goto_functions.update();
 
   remove_skip(goto_model);
@@ -510,9 +481,24 @@ void dfcct::transform_goto_model()
 
   // This can prune too many functions if function pointers have not been
   // yet been removed or if the entry point is not defined.
-  // Another solution would be to rewrite the bodies of functions that seem to
-  // be unreachable into assert(false);assume(false)
+  // TODO: add a command line flag to tell the instrumentation to not prune
+  // a function.
   remove_unused_functions(goto_model, message_handler);
+  goto_model.goto_functions.update();
+
+  // generate assert(0); assume(0); function bodies for all functions missing an
+  // implementation (other than ones containing __CPROVER in their name)
+  auto generate_implementation = generate_function_bodies_factory(
+    "assert-false-assume-false",
+    c_object_factory_parameterst{},
+    goto_model.symbol_table,
+    message_handler);
+  generate_function_bodies(
+    std::regex("(?!" CPROVER_PREFIX ").*"),
+    *generate_implementation,
+    goto_model,
+    message_handler,
+    true);
   goto_model.goto_functions.update();
 
   reinitialize_model();

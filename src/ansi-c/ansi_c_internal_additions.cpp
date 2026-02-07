@@ -144,7 +144,9 @@ void ansi_c_internal_additions(std::string &code, bool support_float16_type)
       " " CPROVER_PREFIX "ssize_t;\n"
     "const unsigned " CPROVER_PREFIX "constant_infinity_uint;\n"
     "typedef void " CPROVER_PREFIX "integer;\n"
+    "typedef void " CPROVER_PREFIX "natural;\n"
     "typedef void " CPROVER_PREFIX "rational;\n"
+    "typedef void " CPROVER_PREFIX "real;\n"
     "extern unsigned char " CPROVER_PREFIX "memory["
       CPROVER_PREFIX "constant_infinity_uint];\n"
 
@@ -285,6 +287,23 @@ void ansi_c_internal_additions(std::string &code, bool support_float16_type)
     {
       code+="typedef signed __int128 __int128_t;\n"
             "typedef unsigned __int128 __uint128_t;\n";
+    }
+
+    if(
+      config.ansi_c.arch == "arm64" &&
+      config.ansi_c.os != configt::ansi_ct::ost::OS_MACOS)
+    {
+      code += "typedef struct __va_list {";
+      code += "void *__stack;";
+      code += "void *__gr_top;";
+      code += "void *__vr_top;";
+      code += "int   __gr_offs;";
+      code += "int   __vr_offs;";
+      code += " } __builtin_va_list;\n";
+    }
+    else
+    {
+      code += "typedef void ** __builtin_va_list;\n";
     }
   }
 

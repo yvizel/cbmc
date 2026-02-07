@@ -7,17 +7,14 @@ Author: Remi Delmas, delmasrd@amazon.com
 \*******************************************************************/
 #include "dfcc_infer_loop_assigns.h"
 
-#include <util/expr.h>
 #include <util/find_symbols.h>
-#include <util/message.h>
 #include <util/pointer_expr.h>
-#include <util/std_code.h>
 
 #include <goto-programs/goto_inline.h>
 
 #include <analyses/goto_rw.h>
+#include <analyses/local_may_alias.h>
 #include <goto-instrument/contracts/utils.h>
-#include <goto-instrument/havoc_utils.h>
 
 #include "dfcc_loop_nesting_graph.h"
 #include "dfcc_root_object.h"
@@ -339,9 +336,11 @@ void dfcc_infer_loop_assigns_for_function(
   auto malloc_body = goto_functions.function_map.extract(irep_idt("malloc"));
   auto free_body = goto_functions.function_map.extract(irep_idt("free"));
 
-  // Inline all function calls in goto_function_copy.
+  // Inline all function calls in goto_function_copy; this is best-effort
+  // inlining, we can safely ignore warnings here.
+  null_message_handlert null_message_handler;
   goto_program_inline(
-    goto_functions, goto_function_copy.body, ns, log.get_message_handler());
+    goto_functions, goto_function_copy.body, ns, null_message_handler);
   // Update the body to make sure all goto correctly jump to valid targets.
   goto_function_copy.body.update();
   // Build the loop graph after inlining.

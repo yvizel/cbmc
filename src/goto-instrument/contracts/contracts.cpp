@@ -14,27 +14,17 @@ Date: February 2016
 #include "contracts.h"
 
 #include <util/c_types.h>
-#include <util/exception_utils.h>
-#include <util/expr_util.h>
-#include <util/find_symbols.h>
 #include <util/format_expr.h>
 #include <util/fresh_symbol.h>
-#include <util/graph.h>
 #include <util/mathematical_expr.h>
-#include <util/message.h>
-#include <util/std_code.h>
 
 #include <goto-programs/goto_inline.h>
-#include <goto-programs/goto_program.h>
 #include <goto-programs/remove_skip.h>
+#include <goto-programs/unwindset.h>
 
 #include <analyses/local_may_alias.h>
-#include <ansi-c/c_expr.h>
-#include <goto-instrument/havoc_utils.h>
 #include <goto-instrument/nondet_static.h>
 #include <goto-instrument/unwind.h>
-#include <goto-instrument/unwindset.h>
-#include <langapi/language_util.h>
 
 #include "cfg_info.h"
 #include "havoc_assigns_clause_targets.h"
@@ -375,7 +365,7 @@ void code_contractst::check_apply_loop_contracts(
   }
 
   // TODO: Fix loop contract handling for do/while loops.
-  if(loop_end->is_goto() && !loop_end->condition().is_true())
+  if(loop_end->is_goto() && loop_end->condition() != true)
   {
     log.error() << "Loop contracts are unsupported on do/while loops: "
                 << loop_head_location << messaget::eom;
@@ -782,7 +772,7 @@ void code_contractst::apply_function_contract(
   // Generate: assume(ensures)
   for(auto &clause : instantiated_ensures_clauses)
   {
-    if(clause.is_false())
+    if(clause == false)
     {
       throw invalid_input_exceptiont(
         std::string("Attempt to assume false at ")
@@ -848,12 +838,9 @@ void code_contractst::apply_loop_contract(
     return;
 
   inlining_decoratort decorated(log.get_message_handler());
-  goto_function_inline(
-    goto_functions, function_name, ns, log.get_message_handler());
+  goto_function_inline(goto_functions, function_name, ns, decorated);
 
-  INVARIANT(
-    decorated.get_recursive_call_set().size() == 0,
-    "Recursive functions found during inlining");
+  decorated.throw_on_recursive_calls(log, 0);
 
   // restore internal invariants
   goto_functions.update();
@@ -1353,7 +1340,7 @@ void code_contractst::add_contract_check(
   {
     auto instantiated_clause =
       to_lambda_expr(clause).application(instantiation_values);
-    if(instantiated_clause.is_false())
+    if(instantiated_clause == false)
     {
       throw invalid_input_exceptiont(
         std::string("Attempt to assume false at ")
@@ -1493,8 +1480,9 @@ void code_contractst::apply_loop_contracts(
   // unwind all transformed loops twice.
   if(loop_contract_config.unwind_transformed_loops)
   {
-    unwindsett unwindset{goto_model};
-    unwindset.parse_unwindset(loop_names, log.get_message_handler());
+    unwindsett unwindset;
+    unwindset.parse_unwindset(
+      loop_names, goto_model, log.get_message_handler());
     goto_unwindt goto_unwind;
     goto_unwind(goto_model, unwindset, goto_unwindt::unwind_strategyt::ASSUME);
   }

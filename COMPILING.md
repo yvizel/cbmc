@@ -12,11 +12,8 @@ integration system. It separately tests both the CMake build system and the
 hand-written make files. The latest build steps being used in CI can be
 [found here](https://github.com/diffblue/cbmc/blob/develop/.github/workflows/pull-request-checks.yaml).
 
-The environments below have been used successfully in the
-past, but are not actively tested:
-
-- Solaris 11
-- FreeBSD 13
+The Solaris 11 environment below has been used successfully in the past, but is
+not actively tested.
 
 # Building using CMake
 
@@ -93,11 +90,12 @@ files.
    ```
 
    On macOS >10.14, the build will fail unless you explicitly specify
-   the full path to the compiler. This issue is being tracked
-   [here](https://github.com/diffblue/cbmc/issues/4956). The invocation thus
+   both the C and C++ compilers to avoid C++ standard library not found
+   errors. This issue is being tracked
+   [here](https://github.com/diffblue/cbmc/issues/8683). The invocation thus
    looks like this:
    ```
-   cmake -S. -Bbuild -DCMAKE_C_COMPILER=/usr/bin/clang
+   cmake -S. -Bbuild -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
    ```
 
    Generally it is not necessary to manually specify individual compiler or

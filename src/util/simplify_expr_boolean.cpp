@@ -56,13 +56,13 @@ simplify_exprt::resultt<> simplify_exprt::simplify_boolean(const exprt &expr)
 
       bool erase;
 
-      if(it->is_true())
+      if(*it == true)
       {
         erase=true;
         negate=!negate;
       }
       else
-        erase=it->is_false();
+        erase = *it == false;
 
       if(erase)
       {
@@ -110,8 +110,8 @@ simplify_exprt::resultt<> simplify_exprt::simplify_boolean(const exprt &expr)
       if(!it->is_boolean())
         return unchanged(expr);
 
-      bool is_true=it->is_true();
-      bool is_false=it->is_false();
+      bool is_true = *it == true;
+      bool is_false = *it == false;
 
       if(expr.id()==ID_and && is_false)
       {
@@ -334,11 +334,11 @@ simplify_exprt::resultt<> simplify_exprt::simplify_not(const not_exprt &expr)
   {
     return to_not_expr(op).op();
   }
-  else if(op.is_false())
+  else if(op == false)
   {
     return true_exprt();
   }
-  else if(op.is_true())
+  else if(op == true)
   {
     return false_exprt();
   }
@@ -373,6 +373,36 @@ simplify_exprt::resultt<> simplify_exprt::simplify_not(const not_exprt &expr)
     auto const &op_as_forall = to_forall_expr(op);
     return exists_exprt{op_as_forall.variables(),
                         simplify_not(not_exprt(op_as_forall.where()))};
+  }
+
+  return unchanged(expr);
+}
+
+simplify_exprt::resultt<>
+simplify_exprt::simplify_quantifier_expr(const quantifier_exprt &expr)
+{
+  const exprt &where = expr.where();
+
+  if(!expr.is_boolean() || !where.is_boolean())
+  {
+    return unchanged(expr);
+  }
+
+  // the following simplification only holds when the domain is non-empty
+  if(
+    (where == false || where == true) &&
+    std::all_of(
+      expr.variables().begin(),
+      expr.variables().end(),
+      [](const symbol_exprt &v)
+      {
+        return v.type().id() == ID_integer || v.type().id() == ID_rational ||
+               v.type().id() == ID_real || v.type().id() == ID_bool ||
+               (can_cast_type<bitvector_typet>(v.type()) &&
+                to_bitvector_type(v.type()).get_width() > 0);
+      }))
+  {
+    return where;
   }
 
   return unchanged(expr);

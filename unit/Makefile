@@ -90,6 +90,11 @@ SRC += analyses/ai/ai.cpp \
        goto-symex/symex_level1.cpp \
        goto-symex/try_evaluate_pointer_comparisons.cpp \
        interpreter/interpreter.cpp \
+       json-symtab-language/json_goto_function.cpp \
+       json-symtab-language/json_goto_function_extended.cpp \
+       json-symtab-language/json_goto_functions.cpp \
+       json-symtab-language/json_goto_functions_extended.cpp \
+       json-symtab-language/json_malformed_input.cpp \
        json/json_parser.cpp \
        json_symbol_table.cpp \
        path_strategies.cpp \
@@ -137,6 +142,7 @@ SRC += analyses/ai/ai.cpp \
        solvers/strings/string_refinement/substitute_array_list.cpp \
        solvers/strings/string_refinement/union_find_replace.cpp \
        util/bitvector_expr.cpp \
+       util/case_expr.cpp \
        util/cmdline.cpp \
        util/dense_integer_map.cpp \
        util/edit_distance.cpp \
@@ -164,6 +170,7 @@ SRC += analyses/ai/ai.cpp \
        util/interval/subtract.cpp \
        util/interval/to_string.cpp \
        util/interval_constraint.cpp \
+       util/interval_template.cpp \
        util/interval_union.cpp \
        util/irep.cpp \
        util/irep_sharing.cpp \
@@ -260,7 +267,6 @@ BMC_DEPS =../src/cbmc/c_test_input_generator$(OBJEXT) \
           ../src/goto-instrument/reachability_slicer$(OBJEXT) \
           ../src/goto-instrument/nondet_static$(OBJEXT) \
           ../src/goto-instrument/full_slicer$(OBJEXT) \
-          ../src/goto-instrument/unwindset$(OBJEXT) \
           ../src/goto-synthesizer/expr_enumerator$(OBJEXT) \
           ../src/xmllang/xmllang$(LIBEXT) \
           ../src/goto-symex/goto-symex$(LIBEXT) \

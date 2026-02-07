@@ -51,9 +51,7 @@ static exprt simplify_json_expr(const exprt &src)
       // simplify expressions of the form &member(object, @class_identifier)
       return simplify_json_expr(object);
     }
-    else if(
-      object.id() == ID_index && to_index_expr(object).index().is_constant() &&
-      to_constant_expr(to_index_expr(object).index()).value_is_zero_string())
+    else if(object.id() == ID_index && to_index_expr(object).index() == 0)
     {
       // simplify expressions of the form  &array[0]
       return simplify_json_expr(to_index_expr(object).array());
@@ -288,8 +286,8 @@ json_objectt json(const exprt &expr, const namespacet &ns, const irep_idt &mode)
     else if(type.id() == ID_bool)
     {
       result["name"] = json_stringt("boolean");
-      result["binary"] = json_stringt(expr.is_true() ? "1" : "0");
-      result["data"] = jsont::json_boolean(expr.is_true());
+      result["binary"] = json_stringt(expr == true ? "1" : "0");
+      result["data"] = jsont::json_boolean(expr == true);
     }
     else if(type.id() == ID_string)
     {

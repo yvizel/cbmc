@@ -68,7 +68,8 @@ void generate_function_bodies(
   const std::regex &functions_regex,
   const generate_function_bodiest &generate_function_body,
   goto_modelt &model,
-  message_handlert &message_handler);
+  message_handlert &message_handler,
+  bool ignore_no_match);
 
 /// Generate a clone of \p function_name (labelled with \p call_site_id) and
 ///   instantiate its body with selective havocing of its parameters.
@@ -91,7 +92,8 @@ void generate_function_bodies(
 
 #define HELP_REPLACE_FUNCTION_BODY                                             \
   " {y--generate-function-body} {uregex} \t "                                  \
-  "generate bodies for functions matching {uregex}\n"                          \
+  "generate bodies for functions matching {uregex} that do not already "       \
+  "have bodies\n"                                                              \
   " {y--generate-havocing-body} <option> "                                     \
   "{ufun_name},{yparams}:{up1};{up2};.. \t "                                   \
   "generate havocing body\n"                                                   \

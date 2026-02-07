@@ -6,31 +6,25 @@ Author: Kareem Khazem <karkhaz@karkhaz.com>, 2018
 
 \*******************************************************************/
 
-#include <testing-utils/use_catch.h>
-
-#include <path_strategies.h>
-
-#include <fstream>
-#include <functional>
-#include <string>
-
-#include <ansi-c/ansi_c_language.h>
-
-#include <cbmc/cbmc_parse_options.h>
-
-#include <goto-checker/bmc_util.h>
-#include <goto-checker/goto_symex_property_decider.h>
-#include <goto-checker/symex_bmc.h>
-
-#include <goto-symex/path_storage.h>
-
-#include <goto-instrument/unwindset.h>
-
-#include <langapi/mode.h>
-
 #include <util/cmdline.h>
 #include <util/config.h>
 #include <util/tempfile.h>
+
+#include <goto-programs/unwindset.h>
+
+#include <ansi-c/ansi_c_language.h>
+#include <cbmc/cbmc_parse_options.h>
+#include <goto-checker/bmc_util.h>
+#include <goto-checker/goto_symex_property_decider.h>
+#include <goto-checker/symex_bmc.h>
+#include <goto-symex/path_storage.h>
+#include <langapi/mode.h>
+#include <testing-utils/use_catch.h>
+
+#include <fstream>
+#include <functional>
+#include <path_strategies.h>
+#include <string>
 
 // The actual test suite.
 //
@@ -415,7 +409,10 @@ void _check_with_strategy(
   propertiest properties(initialize_properties(goto_model));
   std::unique_ptr<path_storaget> worklist = get_path_strategy(strategy);
   guard_managert guard_manager;
-  unwindsett unwindset{goto_model};
+  unwindsett unwindset;
+  unwindset.parse_unwind(options.get_option("unwind"));
+  unwindset.parse_unwindset(
+    options.get_list_option("unwindset"), goto_model, ui_message_handler);
 
   {
     // Put initial state into the work list
@@ -428,7 +425,6 @@ void _check_with_strategy(
       *worklist,
       guard_manager,
       unwindset);
-    setup_symex(symex, ns, options, ui_message_handler);
 
     symex.initialize_path_storage_from_entry_point_of(
       goto_symext::get_goto_function(goto_model),
@@ -451,7 +447,6 @@ void _check_with_strategy(
       *worklist,
       guard_manager,
       unwindset);
-    setup_symex(symex, ns, options, ui_message_handler);
 
     symex_symbol_table = symex.resume_symex_from_saved_state(
       goto_symext::get_goto_function(goto_model),

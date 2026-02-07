@@ -19,7 +19,7 @@ jobs:
       CC: "ccache /usr/bin/clang-13"
       CXX: "ccache /usr/bin/clang++-13"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
@@ -33,7 +33,7 @@ jobs:
       - name: Log cargo/rust version
         run: cargo --version
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache
@@ -69,10 +69,10 @@ jobs:
           CBMC_INCLUDE_DIR=../../${{env.default_include_dir}} CBMC_LIB_DIR=../../${{env.default_build_dir}}/lib CBMC_VERSION=$VERSION cargo test -- --test-threads=1
 
 
-  check-macos-13-cmake-clang-rust:
-    runs-on: macos-13
+  check-macos-15-intel-cmake-clang-rust:
+    runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
       - name: Fetch dependencies
@@ -80,7 +80,7 @@ jobs:
       - name: Log cargo/rust version
         run: cargo --version
       - name: Prepare ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           save-always: true
           path: .ccache

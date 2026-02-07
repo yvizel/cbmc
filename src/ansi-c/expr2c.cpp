@@ -245,11 +245,11 @@ std::string expr2ct::convert_rec(
   {
     return q + CPROVER_PREFIX + "string" + d;
   }
-  else if(src.id()==ID_natural ||
-          src.id()==ID_integer ||
-          src.id()==ID_rational)
+  else if(
+    src.id() == ID_natural || src.id() == ID_integer ||
+    src.id() == ID_rational || src.id() == ID_real)
   {
-    return q+src.id_string()+d;
+    return q + CPROVER_PREFIX + src.id_string() + d;
   }
   else if(src.id()==ID_empty)
   {
@@ -616,6 +616,19 @@ std::string expr2ct::convert_rec(
           src.id()==ID_destructor)
   {
     return q+"__attribute__(("+id2string(src.id())+")) void"+d;
+  }
+  else if(src.id() == ID_bv)
+  {
+    // annotated?
+    irep_idt c_type = src.get(ID_C_c_type);
+    if(c_type == ID_c_signed_bitint)
+    {
+      return "_BitInt(" + src.get_string(ID_C_c_bitint_width) + ")";
+    }
+    else if(c_type == ID_c_unsigned_bitint)
+    {
+      return "unsigned _BitInt(" + src.get_string(ID_C_c_bitint_width) + ")";
+    }
   }
 
   {
@@ -1143,24 +1156,30 @@ std::string expr2ct::convert_allocate(const exprt &src, unsigned &precedence)
   if(src.operands().size() != 2)
     return convert_norep(src, precedence);
 
-  unsigned p0;
-  std::string op0 = convert_with_precedence(to_binary_expr(src).op0(), p0);
+  const binary_exprt &binary_expr = to_binary_expr(src);
 
   unsigned p1;
-  std::string op1 = convert_with_precedence(to_binary_expr(src).op1(), p1);
+  std::string op1 = convert_with_precedence(binary_expr.op1(), p1);
 
-  std::string dest = "ALLOCATE";
+  std::string dest = CPROVER_PREFIX "allocate";
   dest += '(';
 
+  const typet &type =
+    static_cast<const typet &>(binary_expr.op0().find(ID_C_c_sizeof_type));
   if(
     src.type().id() == ID_pointer &&
-    to_pointer_type(src.type()).base_type().id() != ID_empty)
+    to_pointer_type(src.type()).base_type() == type)
   {
-    dest += convert(to_pointer_type(src.type()).base_type());
+    dest += "sizeof(" + convert(to_pointer_type(src.type()).base_type()) + ')';
     dest+=", ";
   }
+  else
+  {
+    unsigned p0;
+    dest += convert_with_precedence(binary_expr.op0(), p0);
+  }
 
-  dest += op0 + ", " + op1;
+  dest += ", " + op1;
   dest += ')';
 
   return dest;
@@ -1267,7 +1286,7 @@ std::string expr2ct::convert_complex(
   unsigned precedence)
 {
   if(
-    src.operands().size() == 2 && to_binary_expr(src).op0().is_zero() &&
+    src.operands().size() == 2 && to_binary_expr(src).op0() == 0 &&
     to_binary_expr(src).op1().is_constant())
   {
     // This is believed to be gcc only; check if this is sensible
@@ -1777,9 +1796,9 @@ std::string expr2ct::convert_constant(
   const irep_idt value=src.get_value();
   std::string dest;
 
-  if(type.id()==ID_integer ||
-     type.id()==ID_natural ||
-     type.id()==ID_rational)
+  if(
+    type.id() == ID_integer || type.id() == ID_natural ||
+    type.id() == ID_rational || type.id() == ID_real)
   {
     dest=id2string(value);
   }
@@ -1818,16 +1837,30 @@ std::string expr2ct::convert_constant(
     else
       return "/*enum*/" + value_as_string;
   }
-  else if(type.id()==ID_rational)
-    return convert_norep(src, precedence);
   else if(type.id()==ID_bv)
   {
-    // not C
-    dest=id2string(value);
+    // used for _BitInt
+    irep_idt c_type = src.get(ID_C_c_type);
+    if(c_type == ID_c_signed_bitint)
+    {
+      auto as_int = bvrep2integer(value, to_bv_type(type).width(), false);
+      auto width = src.get_int(ID_C_c_bitint_width);
+      auto binary = integer2binary(as_int, width); // drops padding
+      return integer2string(binary2integer(binary, true));
+    }
+    else if(c_type == ID_c_unsigned_bitint)
+    {
+      auto as_int = bvrep2integer(value, to_bv_type(type).width(), false);
+      auto width = src.get_int(ID_C_c_bitint_width);
+      auto binary = integer2binary(as_int, width); // drops padding
+      return integer2string(binary2integer(binary, false));
+    }
+    else
+      return convert_norep(src, precedence);
   }
   else if(type.id()==ID_bool)
   {
-    dest=convert_constant_bool(src.is_true());
+    dest = convert_constant_bool(src == true);
   }
   else if(type.id()==ID_unsignedbv ||
           type.id()==ID_signedbv ||
@@ -3530,7 +3563,7 @@ std::string expr2ct::convert_conditional_target_group(const exprt &src)
   std::string dest;
   unsigned p;
   const auto &cond = src.operands().front();
-  if(!cond.is_true())
+  if(cond != true)
   {
     dest += convert_with_precedence(cond, p);
     dest += ": ";
@@ -3750,7 +3783,7 @@ std::string expr2ct::convert_with_precedence(
 
     if(object.id() == ID_label)
       return "&&" + object.get_string(ID_identifier);
-    else if(object.id() == ID_index && to_index_expr(object).index().is_zero())
+    else if(object.id() == ID_index && to_index_expr(object).index() == 0)
       return convert(to_index_expr(object).array());
     else if(to_pointer_type(src.type()).base_type().id() == ID_code)
       return convert_unary(to_unary_expr(src), "", precedence = 15);

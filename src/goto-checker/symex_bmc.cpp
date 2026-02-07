@@ -11,12 +11,14 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "symex_bmc.h"
 
-#include <limits>
-
 #include <util/simplify_expr.h>
 #include <util/source_location.h>
 
-#include <goto-instrument/unwindset.h>
+#include <goto-programs/unwindset.h>
+
+#include <linking/static_lifetime_init.h>
+
+#include <limits>
 
 symex_bmct::symex_bmct(
   message_handlert &mh,
@@ -33,10 +35,17 @@ symex_bmct::symex_bmct(
       options,
       path_storage,
       guard_manager),
+    last_source_location(source_locationt::nil()),
     record_coverage(!options.get_option("symex-coverage-report").empty()),
     unwindset(unwindset),
     symex_coverage(ns)
 {
+  const symbolt *init_symbol = outer_symbol_table.lookup(INITIALIZE_FUNCTION);
+  if(init_symbol)
+    language_mode = init_symbol->mode;
+
+  messaget msg{mh};
+  msg.status() << "Starting Bounded Model Checking" << messaget::eom;
 }
 
 /// show progress
@@ -59,7 +68,7 @@ void symex_bmct::symex_step(
 
   if(
     !state.guard.is_false() && state.source.pc->is_assume() &&
-    simplify_expr(state.source.pc->condition(), ns).is_false())
+    simplify_expr(state.source.pc->condition(), ns) == false)
   {
     log.statistics() << "aborting path on assume(false) at "
                      << state.source.pc->source_location() << " thread "
@@ -88,7 +97,7 @@ void symex_bmct::symex_step(
     // sure the goto is considered covered
     if(
       cur_pc->is_goto() && cur_pc->get_target() != state.source.pc &&
-      cur_pc->condition().is_true())
+      cur_pc->condition() == true)
       symex_coverage.covered(cur_pc, cur_pc->get_target());
     else if(!state.guard.is_false())
       symex_coverage.covered(cur_pc, state.source.pc);
@@ -111,7 +120,7 @@ void symex_bmct::merge_goto(
     // could the branch possibly be taken?
     !prev_guard.is_false() && !state.guard.is_false() &&
     // branches only, no single-successor goto
-    !prev_pc->condition().is_true())
+    prev_pc->condition() != true)
     symex_coverage.covered(prev_pc, state.source.pc);
 }
 

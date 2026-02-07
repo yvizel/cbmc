@@ -123,7 +123,7 @@ bvt boolbvt::convert_bitvector(const exprt &expr)
   else if(expr.id() == ID_update_bit)
     return convert_update_bit(to_update_bit_expr(expr));
   else if(expr.id()==ID_case)
-    return convert_case(expr);
+    return convert_case(to_case_expr(expr));
   else if(expr.id()==ID_cond)
     return convert_cond(to_cond_expr(expr));
   else if(expr.id()==ID_if)
@@ -235,7 +235,7 @@ bvt boolbvt::convert_bitvector(const exprt &expr)
   else if(expr.id()==ID_power)
      return convert_power(to_binary_expr(expr));
   else if(expr.id() == ID_popcount)
-    return convert_bv(simplify_expr(to_popcount_expr(expr).lower(), ns));
+     return convert_popcount(to_popcount_expr(expr));
   else if(expr.id() == ID_count_leading_zeros)
   {
     return convert_bv(
@@ -390,7 +390,7 @@ literalt boolbvt::convert_rest(const exprt &expr)
   }
   else if(expr.id()==ID_case)
   {
-    bvt bv=convert_case(expr);
+    bvt bv = convert_case(to_case_expr(expr));
     CHECK_RETURN(bv.size() == 1);
     return bv[0];
   }
@@ -407,7 +407,7 @@ literalt boolbvt::convert_rest(const exprt &expr)
     CHECK_RETURN(!bv.empty());
     const irep_idt type_id = op.type().id();
     if(type_id == ID_signedbv || type_id == ID_fixedbv || type_id == ID_floatbv)
-      return bv[bv.size()-1];
+      return bv_utils.sign_bit(bv);
     if(type_id == ID_unsignedbv)
       return const_literal(false);
   }

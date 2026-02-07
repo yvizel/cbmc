@@ -543,16 +543,32 @@ void c_typecheck_baset::typecheck_expr_builtin_va_arg(exprt &expr)
   // The first parameter is the va_list, and the second
   // is the type, which will need to be fixed and checked.
   // The type is given by the parser as type of the expression.
-
-  typet arg_type=expr.type();
-  typecheck_type(arg_type);
-
-  const code_typet new_type(
-    {code_typet::parametert(pointer_type(void_type()))}, std::move(arg_type));
+  auto type_not_permitted = [this](const exprt &expr)
+  {
+    const exprt &arg = to_unary_expr(expr).op();
+    error().source_location = expr.source_location();
+    error() << "argument of type '" << to_string(arg.type())
+            << "' not permitted for va_arg" << eom;
+    throw 0;
+  };
 
   exprt arg = to_unary_expr(expr).op();
+  if(auto struct_tag_type = type_try_dynamic_cast<struct_tag_typet>(arg.type()))
+  {
+    // aarch64 ABI mandates that va_list has struct type with member names as
+    // specified
+    const auto &components = follow_tag(*struct_tag_type).components();
+    if(components.size() != 5)
+      type_not_permitted(expr);
+  }
+  else if(arg.type().id() != ID_pointer && arg.type().id() != ID_array)
+    type_not_permitted(expr);
 
-  implicit_typecast(arg, pointer_type(void_type()));
+  typet arg_type = expr.type();
+  typecheck_type(arg_type);
+
+  const code_typet new_type{
+    {code_typet::parametert{arg.type()}}, std::move(arg_type)};
 
   symbol_exprt function(ID_gcc_builtin_va_arg, new_type);
   function.add_source_location() = expr.source_location();
@@ -1441,15 +1457,13 @@ void c_typecheck_baset::typecheck_expr_rel(
   else
   {
     // pointer and zero
-    if(type0.id()==ID_pointer &&
-       simplify_expr(op1, *this).is_zero())
+    if(type0.id() == ID_pointer && simplify_expr(op1, *this) == 0)
     {
       op1 = null_pointer_exprt{to_pointer_type(type0)};
       return;
     }
 
-    if(type1.id()==ID_pointer &&
-       simplify_expr(op0, *this).is_zero())
+    if(type1.id() == ID_pointer && simplify_expr(op0, *this) == 0)
     {
       op0 = null_pointer_exprt{to_pointer_type(type1)};
       return;
@@ -2165,6 +2179,30 @@ void c_typecheck_baset::typecheck_side_effect_function_call(
           typecheck_expr(op);
 
         exprt result = from_integer(0, signed_int_type());
+        expr.swap(result);
+
+        return;
+      }
+      else if(
+        identifier == "__builtin_nondeterministic_value" &&
+        config.ansi_c.mode == configt::ansi_ct::flavourt::CLANG)
+      {
+        // From Clang's documentation:
+        // Each call to __builtin_nondeterministic_value returns a valid value
+        // of the type given by the argument.
+        // Clang only supports integer types, floating-point types, vector
+        // types.
+        if(expr.arguments().size() != 1)
+        {
+          error().source_location = f_op.source_location();
+          error() << "__builtin_nondeterministic_value expects one operand"
+                  << eom;
+          throw 0;
+        }
+        typecheck_expr(expr.arguments().front());
+
+        side_effect_expr_nondett result{
+          expr.arguments().front().type(), f_op.source_location()};
         expr.swap(result);
 
         return;
@@ -3227,8 +3265,9 @@ exprt c_typecheck_baset::do_special_functions(
 
     return typecast_exprt::conditional_cast(isfinite_expr, expr.type());
   }
-  else if(identifier==CPROVER_PREFIX "inf" ||
-          identifier=="__builtin_inf")
+  else if(
+    identifier == CPROVER_PREFIX "inf" || identifier == "__builtin_inf" ||
+    identifier == "__builtin_huge_val")
   {
     constant_exprt inf_expr=
       ieee_floatt::plus_infinity(
@@ -3237,7 +3276,9 @@ exprt c_typecheck_baset::do_special_functions(
 
     return std::move(inf_expr);
   }
-  else if(identifier==CPROVER_PREFIX "inff")
+  else if(
+    identifier == CPROVER_PREFIX "inff" || identifier == "__builtin_inff" ||
+    identifier == "__builtin_huge_valf")
   {
     constant_exprt inff_expr=
       ieee_floatt::plus_infinity(
@@ -3246,7 +3287,9 @@ exprt c_typecheck_baset::do_special_functions(
 
     return std::move(inff_expr);
   }
-  else if(identifier==CPROVER_PREFIX "infl")
+  else if(
+    identifier == CPROVER_PREFIX "infl" || identifier == "__builtin_infl" ||
+    identifier == "__builtin_huge_vall")
   {
     floatbv_typet type=to_floatbv_type(long_double_type());
     constant_exprt infl_expr=
@@ -3619,9 +3662,9 @@ exprt c_typecheck_baset::do_special_functions(
 
     mp_integer arg1;
 
-    if(expr.arguments()[1].is_true())
+    if(expr.arguments()[1] == true)
       arg1=1;
-    else if(expr.arguments()[1].is_false())
+    else if(expr.arguments()[1] == false)
       arg1=0;
     else if(to_integer(to_constant_expr(expr.arguments()[1]), arg1))
     {
@@ -3663,7 +3706,7 @@ exprt c_typecheck_baset::do_special_functions(
       typecast_exprt::conditional_cast(expr.arguments()[0], bool_typet());
     make_constant(arg0);
 
-    if(arg0.is_true())
+    if(arg0 == true)
       return expr.arguments()[1];
     else
       return expr.arguments()[2];

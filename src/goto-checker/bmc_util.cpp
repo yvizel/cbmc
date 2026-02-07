@@ -11,7 +11,8 @@ Author: Daniel Kroening, Peter Schrammel
 
 #include "bmc_util.h"
 
-#include <iostream>
+#include <util/json_stream.h>
+#include <util/ui_message.h>
 
 #include <goto-programs/graphml_witness.h>
 #include <goto-programs/json_goto_trace.h>
@@ -21,16 +22,12 @@ Author: Daniel Kroening, Peter Schrammel
 #include <goto-symex/memory_model_pso.h>
 #include <goto-symex/slice.h>
 #include <goto-symex/symex_target_equation.h>
-
-#include <linking/static_lifetime_init.h>
-
 #include <solvers/decision_procedure.h>
-
-#include <util/json_stream.h>
-#include <util/ui_message.h>
 
 #include "goto_symex_property_decider.h"
 #include "symex_bmc.h"
+
+#include <iostream>
 
 void message_building_error_trace(messaget &log)
 {
@@ -55,9 +52,10 @@ ssa_step_matches_failing_property(const irep_idt &property_id)
 {
   return [property_id](
            symex_target_equationt::SSA_stepst::const_iterator step,
-           const decision_proceduret &decision_procedure) {
+           const decision_proceduret &decision_procedure)
+  {
     return step->is_assert() && step->property_id == property_id &&
-           decision_procedure.get(step->cond_handle).is_false();
+           decision_procedure.get(step->cond_handle) == false;
   };
 }
 
@@ -175,26 +173,6 @@ get_memory_model(const optionst &options, const namespacet &ns)
   }
 }
 
-void setup_symex(
-  symex_bmct &symex,
-  const namespacet &ns,
-  const optionst &options,
-  ui_message_handlert &ui_message_handler)
-{
-  messaget msg(ui_message_handler);
-  const symbolt *init_symbol;
-  if(!ns.lookup(INITIALIZE_FUNCTION, init_symbol))
-    symex.language_mode = init_symbol->mode;
-
-  msg.status() << "Starting Bounded Model Checking" << messaget::eom;
-
-  symex.last_source_location.make_nil();
-
-  symex.unwindset.parse_unwind(options.get_option("unwind"));
-  symex.unwindset.parse_unwindset(
-    options.get_list_option("unwindset"), ui_message_handler);
-}
-
 void slice(
   symex_bmct &symex,
   symex_target_equationt &symex_target_equation,
@@ -250,8 +228,8 @@ void update_properties_status_from_symex_target_equation(
 
     // Don't update status of properties that are constant 'false';
     // we wouldn't have traces for them.
-    const auto status = step.cond_expr.is_true() ? property_statust::PASS
-                                                 : property_statust::UNKNOWN;
+    const auto status = step.cond_expr == true ? property_statust::PASS
+                                               : property_statust::UNKNOWN;
     auto emplace_result = properties.emplace(
       property_id, property_infot{step.source.pc, step.comment, status});
 
@@ -369,11 +347,23 @@ std::chrono::duration<double> prepare_property_decider(
     << property_decider.get_decision_procedure().decision_procedure_text()
     << messaget::eom;
 
-  convert_symex_target_equation(
-    equation, property_decider.get_decision_procedure(), ui_message_handler);
-  property_decider.update_properties_goals_from_symex_target_equation(
-    properties);
-  property_decider.convert_goals();
+  try
+  {
+    convert_symex_target_equation(
+      equation, property_decider.get_decision_procedure(), ui_message_handler);
+    property_decider.update_properties_goals_from_symex_target_equation(
+      properties);
+    property_decider.convert_goals();
+  }
+  catch(const std::bad_alloc &)
+  {
+    log.error() << "Solver ran out of memory during propositional reduction."
+                << messaget::eom;
+    log.error()
+      << "Try reducing the problem size or increasing available memory."
+      << messaget::eom;
+    throw;
+  }
 
   auto solver_stop = std::chrono::steady_clock::now();
   return std::chrono::duration<double>(solver_stop - solver_start);

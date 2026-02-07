@@ -20,13 +20,13 @@ Author: Remi Delmas, delmarsd@amazon.com
 
 #include <goto-programs/goto_model.h>
 #include <goto-programs/remove_skip.h>
+#include <goto-programs/unwindset.h>
 
 #include <ansi-c/c_expr.h>
 #include <ansi-c/c_object_factory_parameters.h>
 #include <goto-instrument/contracts/utils.h>
 #include <goto-instrument/generate_function_bodies.h>
 #include <goto-instrument/unwind.h>
-#include <goto-instrument/unwindset.h>
 #include <langapi/language_util.h>
 
 #include "dfcc_cfg_info.h"
@@ -1208,8 +1208,8 @@ void dfcc_instrumentt::apply_loop_contracts(
   // If required, unwind all transformed loops to yield base and step cases
   if(loop_contract_config.unwind_transformed_loops)
   {
-    unwindsett unwindset{goto_model};
-    unwindset.parse_unwindset(to_unwind, log.get_message_handler());
+    unwindsett unwindset;
+    unwindset.parse_unwindset(to_unwind, goto_model, log.get_message_handler());
     goto_unwindt goto_unwind;
     goto_unwind(goto_model, unwindset, goto_unwindt::unwind_strategyt::ASSUME);
   }

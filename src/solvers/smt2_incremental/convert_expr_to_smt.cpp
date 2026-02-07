@@ -307,7 +307,7 @@ struct sort_based_literal_convertert : public smt_sort_const_downcast_visitort
 
   void visit(const smt_bool_sortt &) override
   {
-    result = smt_bool_literal_termt{member_input.is_true()};
+    result = smt_bool_literal_termt{member_input == true};
   }
 
   void visit(const smt_bit_vector_sortt &bit_vector_sort) override
@@ -1005,12 +1005,9 @@ static smt_termt convert_array_update_to_smt(
   const sub_expression_mapt &converted)
 {
   smt_termt array = converted.at(with.old());
-  for(auto it = ++with.operands().begin(); it != with.operands().end(); it += 2)
-  {
-    const smt_termt &index_term = converted.at(it[0]);
-    const smt_termt &value_term = converted.at(it[1]);
-    array = smt_array_theoryt::store(array, index_term, value_term);
-  }
+  const smt_termt &index_term = converted.at(with.where());
+  const smt_termt &value_term = converted.at(with.new_value());
+  array = smt_array_theoryt::store(array, index_term, value_term);
   return array;
 }
 

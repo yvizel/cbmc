@@ -12,7 +12,8 @@ Author: Daniel Kroening, Peter Schrammel
 #ifndef CPROVER_GOTO_CHECKER_SINGLE_PATH_SYMEX_ONLY_CHECKER_H
 #define CPROVER_GOTO_CHECKER_SINGLE_PATH_SYMEX_ONLY_CHECKER_H
 
-#include <goto-instrument/unwindset.h>
+#include <goto-programs/unwindset.h>
+
 #include <goto-symex/path_storage.h>
 
 #include "incremental_goto_checker.h"
@@ -47,7 +48,10 @@ protected:
     const symex_bmct &symex,
     const symex_target_equationt &equation);
 
-  virtual void setup_symex(symex_bmct &symex);
+  virtual void setup_symex(symex_bmct &symex)
+  {
+    // deriving classes may do extra work here
+  }
 
   /// Adds the initial goto-symex state as a path to the worklist
   virtual void initialize_worklist();

@@ -170,26 +170,24 @@ std::string graphml_witnesst::convert_assign_rec(
   else if(assign.rhs().id() == ID_with)
   {
     const with_exprt &with_expr = to_with_expr(assign.rhs());
-    const auto &ops = with_expr.operands();
 
-    for(std::size_t i = 1; i < ops.size(); i += 2)
+    if(!result.empty())
+      result += ' ';
+
+    if(with_expr.where().id() == ID_member_name)
     {
-      if(!result.empty())
-        result += ' ';
-
-      if(ops[i].id() == ID_member_name)
-      {
-        const member_exprt member{
-          assign.lhs(), ops[i].get(ID_component_name), ops[i + 1].type()};
-        result +=
-          convert_assign_rec(identifier, code_assignt(member, ops[i + 1]));
-      }
-      else
-      {
-        const index_exprt index{assign.lhs(), ops[i]};
-        result +=
-          convert_assign_rec(identifier, code_assignt(index, ops[i + 1]));
-      }
+      const member_exprt member{
+        assign.lhs(),
+        with_expr.where().get(ID_component_name),
+        with_expr.new_value().type()};
+      result += convert_assign_rec(
+        identifier, code_assignt(member, with_expr.new_value()));
+    }
+    else
+    {
+      const index_exprt index{assign.lhs(), with_expr.where()};
+      result += convert_assign_rec(
+        identifier, code_assignt(index, with_expr.new_value()));
     }
   }
   else
@@ -238,7 +236,7 @@ static bool filter_out(
     prev_it->pc->source_location() == it->pc->source_location())
     return true;
 
-  if(it->is_goto() && it->pc->condition().is_true())
+  if(it->is_goto() && it->pc->condition() == true)
     return true;
 
   const source_locationt &source_location = it->pc->source_location();
@@ -546,7 +544,7 @@ void graphml_witnesst::operator()(const symex_target_equationt &equation)
     if(
       it->hidden ||
       (!it->is_assignment() && !it->is_goto() && !it->is_assert()) ||
-      (it->is_goto() && it->source.pc->condition().is_true()) ||
+      (it->is_goto() && it->source.pc->condition() == true) ||
       source_location.is_nil() || source_location.is_built_in() ||
       source_location.get_line().empty())
     {

@@ -8,6 +8,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "bv_utils.h"
 
+#include <util/arith_tools.h>
+
 #include <list>
 #include <utility>
 
@@ -432,12 +434,11 @@ literalt bv_utilst::overflow_add(
     // An overflow occurs if the signs of the two operands are the same
     // and the sign of the sum is the opposite.
 
-    literalt old_sign=op0[op0.size()-1];
-    literalt sign_the_same=prop.lequal(op0[op0.size()-1], op1[op1.size()-1]);
+    literalt old_sign = sign_bit(op0);
+    literalt sign_the_same = prop.lequal(sign_bit(op0), sign_bit(op1));
 
     bvt result=add(op0, op1);
-    return
-      prop.land(sign_the_same, prop.lxor(result[result.size()-1], old_sign));
+    return prop.land(sign_the_same, prop.lxor(sign_bit(result), old_sign));
   }
   else if(rep==representationt::UNSIGNED)
   {
@@ -457,7 +458,7 @@ literalt bv_utilst::overflow_sub(
     // x is negative, always representable, and
     // thus not an overflow.
     literalt op1_is_int_min=is_int_min(op1);
-    literalt op0_is_negative=op0[op0.size()-1];
+    literalt op0_is_negative = sign_bit(op0);
 
     return
       prop.lselect(op1_is_int_min,
@@ -557,7 +558,7 @@ bvt bv_utilst::shift(const bvt &src, const shiftt s, std::size_t dist)
     case shiftt::SHIFT_ARIGHT:
       // src.size()-i won't underflow as i<src.size()
       // Then, if dist<src.size()-i, then i+dist<src.size()
-      l=(dist<src.size()-i?src[i+dist]:src[src.size()-1]); // sign bit
+      l = dist < src.size() - i ? src[i + dist] : sign_bit(src);
       break;
 
     case shiftt::SHIFT_LRIGHT:
@@ -608,7 +609,7 @@ literalt bv_utilst::overflow_negate(const bvt &bv)
   bvt should_be_zeros(bv);
   should_be_zeros.pop_back();
 
-  return prop.land(bv[bv.size() - 1], !prop.lor(should_be_zeros));
+  return prop.land(sign_bit(bv), !prop.lor(should_be_zeros));
 }
 
 void bv_utilst::incrementer(
@@ -1005,8 +1006,8 @@ bvt bv_utilst::signed_multiplier(const bvt &op0, const bvt &op1)
   if(op0.empty() || op1.empty())
     return bvt();
 
-  literalt sign0=op0[op0.size()-1];
-  literalt sign1=op1[op1.size()-1];
+  literalt sign0 = sign_bit(op0);
+  literalt sign1 = sign_bit(op1);
 
   bvt neg0=cond_negate(op0, sign0);
   bvt neg1=cond_negate(op1, sign1);
@@ -1034,7 +1035,7 @@ bvt bv_utilst::cond_negate(const bvt &bv, const literalt cond)
 bvt bv_utilst::absolute_value(const bvt &bv)
 {
   PRECONDITION(!bv.empty());
-  return cond_negate(bv, bv[bv.size()-1]);
+  return cond_negate(bv, sign_bit(bv));
 }
 
 bvt bv_utilst::cond_negate_no_overflow(const bvt &bv, literalt cond)
@@ -1051,15 +1052,15 @@ bvt bv_utilst::signed_multiplier_no_overflow(
   if(op0.empty() || op1.empty())
     return bvt();
 
-  literalt sign0=op0[op0.size()-1];
-  literalt sign1=op1[op1.size()-1];
+  literalt sign0 = sign_bit(op0);
+  literalt sign1 = sign_bit(op1);
 
   bvt neg0=cond_negate_no_overflow(op0, sign0);
   bvt neg1=cond_negate_no_overflow(op1, sign1);
 
   bvt result=unsigned_multiplier_no_overflow(neg0, neg1);
 
-  prop.l_set_to_false(result[result.size() - 1]);
+  prop.l_set_to_false(sign_bit(result));
 
   literalt result_sign=prop.lxor(sign0, sign1);
 
@@ -1112,8 +1113,8 @@ void bv_utilst::signed_divider(
 
   bvt _op0(op0), _op1(op1);
 
-  literalt sign_0=_op0[_op0.size()-1];
-  literalt sign_1=_op1[_op1.size()-1];
+  literalt sign_0 = sign_bit(_op0);
+  literalt sign_1 = sign_bit(_op1);
 
   bvt neg_0=negate(_op0), neg_1=negate(_op1);
 
@@ -1409,19 +1410,13 @@ literalt bv_utilst::lt_or_le(
 {
   PRECONDITION(bv0.size() == bv1.size());
 
-  literalt top0=bv0[bv0.size()-1],
-    top1=bv1[bv1.size()-1];
-
 #ifdef COMPACT_LT_OR_LE
   if(prop.has_set_to() && prop.cnf_handled_well())
   {
-    bvt compareBelow;   // 1 if a compare is needed below this bit
-    literalt result;
-    size_t start;
-    size_t i;
-
     if(rep == representationt::SIGNED)
     {
+      literalt top0 = sign_bit(bv0), top1 = sign_bit(bv1);
+
       if(top0.is_false() && top1.is_true())
         return const_literal(false);
       else if(top0.is_true() && top1.is_false())
@@ -1429,8 +1424,9 @@ literalt bv_utilst::lt_or_le(
 
       INVARIANT(
         bv0.size() >= 2, "signed bitvectors should have at least two bits");
-      compareBelow = prop.new_variables(bv0.size() - 1);
-      start = compareBelow.size() - 1;
+      // 1 if a compare is needed below this bit
+      bvt compareBelow = prop.new_variables(bv0.size() - 1);
+      size_t start = compareBelow.size() - 1;
 
       literalt &firstComp = compareBelow[start];
       if(top0.is_false())
@@ -1442,7 +1438,7 @@ literalt bv_utilst::lt_or_le(
       else if(top1.is_true())
         firstComp = top0;
 
-      result = prop.new_variable();
+      literalt result = prop.new_variable();
 
       // When comparing signs we are comparing the top bit
       // Four cases...
@@ -1454,77 +1450,137 @@ literalt bv_utilst::lt_or_le(
 #ifdef INCLUDE_REDUNDANT_CLAUSES
       prop.lcnf(top0, !top1, !firstComp);
       prop.lcnf(!top0,  top1, !firstComp);
-#endif
+#  endif
+
+      // Determine the output
+      //  \forall i .  cb[i] & -a[i] &  b[i] =>  result
+      //  \forall i .  cb[i] &  a[i] & -b[i] => -result
+      size_t i = start;
+      do
+      {
+        if(compareBelow[i].is_false())
+          continue;
+
+        prop.lcnf(!compareBelow[i], bv0[i], !bv1[i], result);
+        prop.lcnf(!compareBelow[i], !bv0[i], bv1[i], !result);
+      } while(i-- != 0);
+
+      // Chain the comparison bit
+      //  \forall i != 0 . cb[i] &  a[i] &  b[i] => cb[i-1]
+      //  \forall i != 0 . cb[i] & -a[i] & -b[i] => cb[i-1]
+      for(i = start; i > 0; i--)
+      {
+        prop.lcnf(!compareBelow[i], !bv0[i], !bv1[i], compareBelow[i - 1]);
+        prop.lcnf(!compareBelow[i], bv0[i], bv1[i], compareBelow[i - 1]);
+      }
+
+#  ifdef INCLUDE_REDUNDANT_CLAUSES
+      // Optional zeroing of the comparison bit when not needed
+      //  \forall i != 0 . -c[i] => -c[i-1]
+      //  \forall i != 0 .  c[i] & -a[i] &  b[i] => -c[i-1]
+      //  \forall i != 0 .  c[i] &  a[i] & -b[i] => -c[i-1]
+      for(i = start; i > 0; i--)
+      {
+        prop.lcnf(compareBelow[i], !compareBelow[i - 1]);
+        prop.lcnf(!compareBelow[i], bv0[i], !bv1[i], !compareBelow[i - 1]);
+        prop.lcnf(!compareBelow[i], !bv0[i], bv1[i], !compareBelow[i - 1]);
+      }
+#  endif
+
+      // The 'base case' of the induction is the case when they are equal
+      prop.lcnf(
+        !compareBelow[0], !bv0[0], !bv1[0], (or_equal) ? result : !result);
+      prop.lcnf(
+        !compareBelow[0], bv0[0], bv1[0], (or_equal) ? result : !result);
+
+      return result;
     }
     else
     {
       // Unsigned is much easier
-      compareBelow = prop.new_variables(bv0.size() - 1);
-      compareBelow.push_back(const_literal(true));
-      start = compareBelow.size() - 1;
-      result = prop.new_variable();
-    }
+      // 1 if a compare is needed below this bit
+      bvt compareBelow;
+      literalt result;
+      size_t start = bv0.size() - 1;
 
-    // Determine the output
-    //  \forall i .  cb[i] & -a[i] &  b[i] =>  result
-    //  \forall i .  cb[i] &  a[i] & -b[i] => -result
-    i = start;
-    do
-    {
-      if(compareBelow[i].is_false())
-        continue;
-      else if(compareBelow[i].is_true())
+      // Determine the output
+      //  \forall i .  cb[i] & -a[i] &  b[i] =>  result
+      //  \forall i .  cb[i] &  a[i] & -b[i] => -result
+      bool same_prefix = true;
+      size_t i = start;
+      do
       {
-        if(bv0[i].is_false() && bv1[i].is_true())
-          return const_literal(true);
-        else if(bv0[i].is_true() && bv1[i].is_false())
-          return const_literal(false);
+        if(same_prefix)
+        {
+          if(i == 0)
+          {
+            if(or_equal)
+              return prop.lor(!bv0[0], bv1[0]);
+            else
+              return prop.land(!bv0[0], bv1[0]);
+          }
+          else if(bv0[i] == bv1[i])
+            continue;
+          else if(bv0[i].is_false() && bv1[i].is_true())
+            return const_literal(true);
+          else if(bv0[i].is_true() && bv1[i].is_false())
+            return const_literal(false);
+          else
+          {
+            same_prefix = false;
+            start = i;
+            compareBelow = prop.new_variables(i);
+            compareBelow.push_back(const_literal(true));
+            result = prop.new_variable();
+          }
+        }
+
+        prop.lcnf(!compareBelow[i], bv0[i], !bv1[i], result);
+        prop.lcnf(!compareBelow[i], !bv0[i], bv1[i], !result);
+      } while(i-- != 0);
+
+      // Chain the comparison bit
+      //  \forall i != 0 . cb[i] &  a[i] &  b[i] => cb[i-1]
+      //  \forall i != 0 . cb[i] & -a[i] & -b[i] => cb[i-1]
+      for(i = start; i > 0; i--)
+      {
+        prop.lcnf(!compareBelow[i], !bv0[i], !bv1[i], compareBelow[i - 1]);
+        prop.lcnf(!compareBelow[i], bv0[i], bv1[i], compareBelow[i - 1]);
       }
 
-      prop.lcnf(!compareBelow[i],  bv0[i], !bv1[i],  result);
-      prop.lcnf(!compareBelow[i], !bv0[i],  bv1[i], !result);
-    }
-    while(i-- != 0);
-
-    // Chain the comparison bit
-    //  \forall i != 0 . cb[i] &  a[i] &  b[i] => cb[i-1]
-    //  \forall i != 0 . cb[i] & -a[i] & -b[i] => cb[i-1]
-    for(i = start; i > 0; i--)
-    {
-      prop.lcnf(!compareBelow[i], !bv0[i], !bv1[i], compareBelow[i-1]);
-      prop.lcnf(!compareBelow[i],  bv0[i],  bv1[i], compareBelow[i-1]);
-    }
-
-
 #ifdef INCLUDE_REDUNDANT_CLAUSES
-    // Optional zeroing of the comparison bit when not needed
-    //  \forall i != 0 . -c[i] => -c[i-1]
-    //  \forall i != 0 .  c[i] & -a[i] &  b[i] => -c[i-1]
-    //  \forall i != 0 .  c[i] &  a[i] & -b[i] => -c[i-1]
-    for(i = start; i > 0; i--)
-    {
-      prop.lcnf(compareBelow[i],                   !compareBelow[i-1]);
-      prop.lcnf(!compareBelow[i],  bv0[i], !bv1[i], !compareBelow[i-1]);
-      prop.lcnf(!compareBelow[i], !bv0[i],  bv1[i], !compareBelow[i-1]);
-    }
+      // Optional zeroing of the comparison bit when not needed
+      //  \forall i != 0 . -c[i] => -c[i-1]
+      //  \forall i != 0 .  c[i] & -a[i] &  b[i] => -c[i-1]
+      //  \forall i != 0 .  c[i] &  a[i] & -b[i] => -c[i-1]
+      for(i = start; i > 0; i--)
+      {
+        prop.lcnf(compareBelow[i], !compareBelow[i - 1]);
+        prop.lcnf(!compareBelow[i], bv0[i], !bv1[i], !compareBelow[i - 1]);
+        prop.lcnf(!compareBelow[i], !bv0[i], bv1[i], !compareBelow[i - 1]);
+      }
 #endif
 
-    // The 'base case' of the induction is the case when they are equal
-    prop.lcnf(!compareBelow[0], !bv0[0], !bv1[0], (or_equal)?result:!result);
-    prop.lcnf(!compareBelow[0],  bv0[0],  bv1[0], (or_equal)?result:!result);
+      // The 'base case' of the induction is the case when they are equal
+      prop.lcnf(
+        !compareBelow[0], !bv0[0], !bv1[0], (or_equal) ? result : !result);
+      prop.lcnf(
+        !compareBelow[0], bv0[0], bv1[0], (or_equal) ? result : !result);
 
-    return result;
+      return result;
+    }
   }
   else
 #endif
   {
+    // A <= B  iff  there is an overflow on A-B
     literalt carry=
       carry_out(bv0, inverted(bv1), const_literal(true));
 
     literalt result;
 
     if(rep==representationt::SIGNED)
-      result=prop.lxor(prop.lequal(top0, top1), carry);
+      result = prop.lxor(prop.lequal(sign_bit(bv0), sign_bit(bv1)), carry);
     else
     {
       INVARIANT(
@@ -1544,12 +1600,7 @@ literalt bv_utilst::unsigned_less_than(
   const bvt &op0,
   const bvt &op1)
 {
-#ifdef COMPACT_LT_OR_LE
   return lt_or_le(false, op0, op1, representationt::UNSIGNED);
-#else
-  // A <= B  iff  there is an overflow on A-B
-  return !carry_out(op0, inverted(op1), const_literal(true));
-#endif
 }
 
 literalt bv_utilst::signed_less_than(
@@ -1643,4 +1694,66 @@ bvt bv_utilst::verilog_bv_normal_bits(const bvt &src)
   }
 
   return even_bits;
+}
+
+/// Symbolic implementation of popcount (count of 1 bits in a bit vector)
+/// Based on the pop0 algorithm from Hacker's Delight
+/// \param bv: The bit vector to count 1s in
+/// \return A bit vector representing the count
+bvt bv_utilst::popcount(const bvt &bv)
+{
+  PRECONDITION(!bv.empty());
+
+  // Determine the result width: log2(bv.size()) + 1
+  std::size_t log2 = address_bits(bv.size());
+  CHECK_RETURN(log2 >= 1);
+
+  // Start with the original bit vector
+  bvt x = bv;
+
+  // Apply the parallel bit counting algorithm from Hacker's Delight (pop0).
+  // The algorithm works by summing adjacent bit groups of increasing sizes.
+
+  // Iterate through the stages of the algorithm, doubling the field size each
+  // time
+  for(std::size_t stage = 0; stage < log2; ++stage)
+  {
+    std::size_t shift_amount = 1 << stage;     // 1, 2, 4, 8, 16, ...
+    std::size_t field_size = 2 * shift_amount; // 2, 4, 8, 16, 32, ...
+
+    // Skip if the bit vector is smaller than the field size
+    if(x.size() <= shift_amount)
+      break;
+
+    // Shift the bit vector
+    bvt x_shifted = shift(x, shiftt::SHIFT_LRIGHT, shift_amount);
+
+    // Create a mask with 'shift_amount' ones followed by 'shift_amount' zeros,
+    // repeated
+    bvt mask;
+    mask.reserve(x.size());
+    for(std::size_t i = 0; i < x.size(); i++)
+    {
+      if((i % field_size) < shift_amount)
+        mask.push_back(const_literal(true));
+      else
+        mask.push_back(const_literal(false));
+    }
+
+    // Apply the mask to both the original and shifted bit vectors
+    bvt masked_x, masked_shifted;
+    masked_x.reserve(x.size());
+    masked_shifted.reserve(x.size());
+
+    for(std::size_t i = 0; i < x.size(); i++)
+    {
+      masked_x.push_back(prop.land(x[i], mask[i]));
+      masked_shifted.push_back(prop.land(x_shifted[i], mask[i]));
+    }
+
+    // Add the masked vectors
+    x = add(masked_x, masked_shifted);
+  }
+
+  return x;
 }

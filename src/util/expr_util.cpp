@@ -66,11 +66,6 @@ exprt make_binary(const exprt &expr)
   return previous;
 }
 
-with_exprt make_with_expr(const update_exprt &src)
-{
-  return src.make_with_expr();
-}
-
 exprt is_not_zero(
   const exprt &src,
   const namespacet &ns)
@@ -104,9 +99,9 @@ exprt boolean_negate(const exprt &src)
 {
   if(src.id() == ID_not)
     return to_not_expr(src).op();
-  else if(src.is_true())
+  else if(src == true)
     return false_exprt();
-  else if(src.is_false())
+  else if(src == false)
     return true_exprt();
   else
     return not_exprt(src);
@@ -320,28 +315,5 @@ constant_exprt make_boolean_expr(bool value)
 
 exprt make_and(exprt a, exprt b)
 {
-  PRECONDITION(a.is_boolean() && b.is_boolean());
-  if(b.is_constant())
-  {
-    if(b.get(ID_value) == ID_false)
-      return false_exprt{};
-    return a;
-  }
-  if(a.is_constant())
-  {
-    if(a.get(ID_value) == ID_false)
-      return false_exprt{};
-    return b;
-  }
-  if(b.id() == ID_and)
-  {
-    b.add_to_operands(std::move(a));
-    return b;
-  }
-  return and_exprt{std::move(a), std::move(b)};
-}
-
-bool is_null_pointer(const constant_exprt &expr)
-{
-  return expr.is_null_pointer();
+  return conjunction(a, b);
 }

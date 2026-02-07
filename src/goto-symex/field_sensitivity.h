@@ -11,9 +11,11 @@ Author: Michael Tautschnig
 
 #include <util/ssa_expr.h>
 
+class byte_extract_exprt;
 class namespacet;
 class goto_symex_statet;
 class symex_targett;
+class value_sett;
 
 class field_sensitive_ssa_exprt : public exprt
 {
@@ -119,9 +121,14 @@ public:
   /// \param max_array_size: maximum size for which field sensitivity will be
   ///   applied to array cells
   /// \param should_simplify: simplify expressions
-  field_sensitivityt(std::size_t max_array_size, bool should_simplify)
+  /// \param language_mode: mode of the language that expressions belong to.
+  field_sensitivityt(
+    std::size_t max_array_size,
+    bool should_simplify,
+    const irep_idt &language_mode)
     : max_field_sensitivity_array_size(max_array_size),
-      should_simplify(should_simplify)
+      should_simplify(should_simplify),
+      language_mode(language_mode)
   {
   }
 
@@ -201,6 +208,7 @@ private:
   const std::size_t max_field_sensitivity_array_size;
 
   const bool should_simplify;
+  const irep_idt &language_mode;
 
   void field_assignments_rec(
     const namespacet &ns,
@@ -210,7 +218,17 @@ private:
     symex_targett &target,
     bool allow_pointer_unsoundness) const;
 
-  [[nodiscard]] exprt simplify_opt(exprt e, const namespacet &ns) const;
+  [[nodiscard]] exprt simplify_opt(
+    exprt e,
+    const value_sett &value_set,
+    const namespacet &ns) const;
+
+  /// \copydoc apply(const namespacet&,goto_symex_statet&,exprt,bool) const
+  [[nodiscard]] exprt apply_byte_extract(
+    const namespacet &ns,
+    goto_symex_statet &state,
+    const byte_extract_exprt &expr,
+    bool write) const;
 };
 
 #endif // CPROVER_GOTO_SYMEX_FIELD_SENSITIVITY_H

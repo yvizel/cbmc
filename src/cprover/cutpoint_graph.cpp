@@ -227,24 +227,3 @@ void cutpoint_grapht::compute_bwd_reach(const goto_functiont &goto_function)
     }
   }
 }
-
-bool cutpoint_graph::isFwdReach(const cutpoint &cp, const goto_programt::instructiont &inst) const
-{
-  if (&(cp.inst ()) == &inst) return true;
-
-  // The instruction is already a cut-point, but not the one testes.
-  // It is impossible to reach another cut-point without getting to it
-  if (isCutpoint(inst)) return false;
-
-  // In case the instruction is not a cut-point, retrieve the backward
-  // reachability info (cut-point backward reachability) and check if the
-  // cut-point is backward reachable. If it is, then the instruction
-  // is forward reachable from the given cp.
-  auto it = m_bwd.find (&inst);
-  INVARIANT(it != m_bwd.end (), "No back-reachability information");
-
-  unsigned sz = it->second.size ();
-  unsigned id = cp.id ();
-  if (sz == 0 || id >= sz) return false;
-  return (it->second)[id];
-}

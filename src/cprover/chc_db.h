@@ -274,4 +274,3 @@ public:
 };
 
 #endif //CBMC_CHC_DB_H
->>>>>>> 22e48ff7e1 (Adding CHCs data structures and utilities for resolution-based large step encoding)

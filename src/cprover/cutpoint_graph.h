@@ -175,4 +175,3 @@ inline const cutpoint_grapht &cutpoint_edget::graph() const { return m_src.graph
 
 
 #endif //CBMC_CUTPOINT_GRAPH_H
->>>>>>> 22e48ff7e1 (Adding CHCs data structures and utilities for resolution-based large step encoding)

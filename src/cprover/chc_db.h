@@ -113,7 +113,7 @@ class chc_dbt
   friend class horn_clauset;
 
 public:
-  struct is_state_pred : public std::__unary_function<exprt, bool>
+  struct is_state_pred
   {
     const chc_dbt &m_db;
     is_state_pred(const chc_dbt &db) : m_db(db)

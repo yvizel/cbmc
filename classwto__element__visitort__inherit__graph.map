@@ -1,0 +1,9 @@
+<map id="wto_element_visitort" name="wto_element_visitort">
+<area shape="rect" id="Node000001" title="Bourdoncle Components over the cut&#45;point graph of CHCs is a weak topological ordering (wto) on cut&#45;po..." alt="" coords="239,5,399,31"/>
+<area shape="rect" id="Node000002" href="$classchc__wtot_1_1nested__components__visitort.html" title=" " alt="" coords="5,79,224,119"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="277,38,165,81,163,76,275,33"/>
+<area shape="rect" id="Node000003" href="$classresolution__visitort.html" title="Traverses the clauses in order (wto) and resolving all predicates (symbols) that are not a head of a ..." alt="" coords="249,86,389,111"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="321,44,321,86,316,86,316,44"/>
+<area shape="rect" id="Node000004" href="$classsimple__visitort.html" title="Simple Visitor prints the components of the WTO with well&#45;formed parentheses." alt="" coords="413,86,531,111"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="355,35,450,83,448,88,352,39"/>
+</map>

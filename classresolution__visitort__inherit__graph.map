@@ -1,0 +1,5 @@
+<map id="resolution_visitort" name="resolution_visitort">
+<area shape="rect" id="Node000001" title="Traverses the clauses in order (wto) and resolving all predicates (symbols) that are not a head of a ..." alt="" coords="15,79,155,104"/>
+<area shape="rect" id="Node000002" href="$classwto__element__visitort.html" title="Bourdoncle Components over the cut&#45;point graph of CHCs is a weak topological ordering (wto) on cut&#45;po..." alt="" coords="5,5,165,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="88,44,88,79,83,79,83,44"/>
+</map>

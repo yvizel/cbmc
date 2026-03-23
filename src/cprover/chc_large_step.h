@@ -116,7 +116,7 @@ private:
       {
         m_heads.insert(symb->hash());
         std::vector<horn_clauset> def_chcs;
-        def_chcs.push_back(clause.get_chc());
+        def_chcs.push_back(clause);
         m_def.insert(std::make_pair(symb->hash(), def_chcs));
       }
 
@@ -136,7 +136,7 @@ private:
             forall_exprt resolvent = resolve_clauses((*cls_it), clause);
             if(m_verbose)
               std::cout << "Result:\n" << format(resolvent) << "\n";
-            def_chcs.push_back(resolvent);
+            def_chcs.push_back(horn_clauset(resolvent));
           }
         }
         auto def_it = m_def.find(symb->hash());

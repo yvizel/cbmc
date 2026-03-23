@@ -119,7 +119,7 @@ class chc_dbt
   friend class horn_clauset;
 
 public:
-  struct is_state_pred
+  struct is_state_predt
   {
     const chc_dbt &m_db;
     explicit is_state_predt(const chc_dbt &db) : m_db(db)

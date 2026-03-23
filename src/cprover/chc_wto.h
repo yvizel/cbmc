@@ -217,7 +217,7 @@ private:
     auto it = m_dfn.find(v->hash());
     if(it != m_dfn.end())
       return it->second;
-    return 0;
+    return inf_numt(0);
   }
 
   std::deque<wto_element_ptrt> component(const symbol_exprt *v)
@@ -226,7 +226,7 @@ private:
     for(auto &target : m_g.outgoing(*v))
     {
       const symbol_exprt *t = (&to_symbol_expr(target));
-      if(get_dfn(t) == 0)
+      if(get_dfn(t) == inf_numt(0))
         visit(t, partition);
     }
     return partition;
@@ -235,14 +235,14 @@ private:
   inf_numt visit(const symbol_exprt *v, std::deque<wto_element_ptrt> &partition)
   {
     m_stack.push_back(v);
-    m_dfn[v->hash()] = m_cur_dfn_num++;
+    m_dfn[v->hash()] = inf_numt(m_cur_dfn_num++);
     auto head = get_dfn(v);
     bool loop = false;
     for(auto &target : m_g.outgoing(*v))
     {
       const symbol_exprt *t = (&to_symbol_expr(target));
       auto min = get_dfn(t);
-      if(min == 0)
+      if(min == inf_numt(0))
         min = visit(t, partition);
       if(min <= head)
       {
@@ -260,7 +260,7 @@ private:
       {
         while(!(element == v))
         {
-          m_dfn[element->hash()] = 0; // reset
+          m_dfn[element->hash()] = inf_numt(0); // reset
           element = m_stack.back();
           m_stack.pop_back();
         }

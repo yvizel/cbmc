@@ -1,9 +1,16 @@
-//
-// Created by Yakir Vizel on 5/27/24.
-//
+/*******************************************************************\
 
-#ifndef CBMC_CHC_DB_H
-#define CBMC_CHC_DB_H
+Module: CHC Database
+
+Author: Yakir Vizel
+
+\*******************************************************************/
+
+/// \file
+/// CHC (Constrained Horn Clause) database
+
+#ifndef CPROVER_CPROVER_CHC_DB_H
+#define CPROVER_CPROVER_CHC_DB_H
 
 #include <util/find_symbols.h>
 #include <util/mathematical_expr.h>
@@ -32,7 +39,7 @@ class horn_clauset
   forall_exprt m_chc;
 
 public:
-  horn_clauset(forall_exprt f) : m_chc(f)
+  explicit horn_clauset(forall_exprt f) : m_chc(f)
   {
   }
 
@@ -67,9 +74,8 @@ public:
   bool is_fact() const
   {
     auto b = body();
-    const std::function<bool(const exprt &)> pred = [](const exprt &subexpr) {
-      return can_cast_expr<function_application_exprt>(subexpr);
-    };
+    const std::function<bool(const exprt &)> pred = [](const exprt &subexpr)
+    { return can_cast_expr<function_application_exprt>(subexpr); };
     auto it = std::find_if(b->depth_begin(), b->depth_end(), pred);
 
     return (it == b->depth_end());
@@ -113,10 +119,10 @@ class chc_dbt
   friend class horn_clauset;
 
 public:
-  struct is_state_pred : public std::__unary_function<exprt, bool>
+  struct is_state_predt : public std::__unary_function<exprt, bool>
   {
     const chc_dbt &m_db;
-    is_state_pred(const chc_dbt &db) : m_db(db)
+    explicit is_state_predt(const chc_dbt &db) : m_db(db)
     {
     }
 
@@ -238,7 +244,7 @@ class chc_grapht
   static std::unordered_set<exprt, irep_hash> m_expr_empty_set;
 
 public:
-  chc_grapht(chc_dbt &db) : m_db(db), m_entry(nullptr)
+  explicit chc_grapht(chc_dbt &db) : m_db(db), m_entry(nullptr)
   {
   }
 
@@ -273,4 +279,4 @@ public:
   }
 };
 
-#endif //CBMC_CHC_DB_H
+#endif // CPROVER_CPROVER_CHC_DB_H

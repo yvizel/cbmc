@@ -1,6 +1,13 @@
-//
-// Created by Yakir Vizel on 5/27/24.
-//
+/*******************************************************************\
+
+Module: CHC Database
+
+Author: Yakir Vizel
+
+\*******************************************************************/
+
+/// \file
+/// CHC (Constrained Horn Clause) database
 
 #include "chc_db.h"
 
@@ -11,35 +18,46 @@ std::vector<symbol_exprt> horn_clauset::used_relations(chc_dbt &db) const
 {
   std::vector<symbol_exprt> out;
   const exprt *body = this->body();
-  if (body == nullptr) return out;
+  if(body == nullptr)
+    return out;
   std::set<symbol_exprt> symbols = find_symbols(*body);
 
-  chc_dbt::is_state_pred filter(db);
-  for (auto & symb : symbols) {
-    if (filter(symb)) {
+  chc_dbt::is_state_predt filter(db);
+  for(auto &symb : symbols)
+  {
+    if(filter(symb))
+    {
       out.push_back(symb);
     }
   }
   return out;
 }
 
-void horn_clauset::used_func_app(chc_dbt &db, std::vector<function_application_exprt> & out) const
+void horn_clauset::used_func_app(
+  chc_dbt &db,
+  std::vector<function_application_exprt> &out) const
 {
   const exprt *body = this->body();
-  if (body == nullptr) return;
+  if(body == nullptr)
+    return;
 
   std::unordered_set<function_application_exprt, irep_hash> funcs;
-  body->visit_pre([&funcs](const exprt &expr) {
-                    if (can_cast_expr<function_application_exprt>(expr))
-                    {
-                      const function_application_exprt & f = to_function_application_expr(expr);
-                      funcs.insert(f);
-                    }
-                  });
+  body->visit_pre(
+    [&funcs](const exprt &expr)
+    {
+      if(can_cast_expr<function_application_exprt>(expr))
+      {
+        const function_application_exprt &f =
+          to_function_application_expr(expr);
+        funcs.insert(f);
+      }
+    });
 
-  chc_dbt::is_state_pred filter(db);
-  for (auto & f : funcs) {
-    if (filter(to_symbol_expr(f.function()))) {
+  chc_dbt::is_state_predt filter(db);
+  for(auto &f : funcs)
+  {
+    if(filter(to_symbol_expr(f.function())))
+    {
       out.push_back(f);
     }
   }
@@ -55,10 +73,10 @@ void chc_dbt::build_indices()
 {
   reset_indices();
 
-  for (std::size_t i = 0; i < m_clauses.size(); i++)
+  for(std::size_t i = 0; i < m_clauses.size(); i++)
   {
-    auto & r = m_clauses[i];
-    if (!can_cast_expr<function_application_exprt>(*r.head()))
+    auto &r = m_clauses[i];
+    if(!can_cast_expr<function_application_exprt>(*r.head()))
     {
       continue;
     }
@@ -66,7 +84,7 @@ void chc_dbt::build_indices()
     m_head_idx[func].insert(i);
 
     std::vector<symbol_exprt> use = r.used_relations(*this);
-    for (auto & symb : use)
+    for(auto &symb : use)
     {
       m_body_idx[symb].insert(i);
     }
@@ -77,14 +95,15 @@ void chc_grapht::build_graph()
 {
   m_db.build_indices();
 
-  for (auto & sp : m_db.get_state_preds())
+  for(auto &sp : m_db.get_state_preds())
   {
     std::unordered_set<exprt, irep_hash> outgoing;
     const chc_dbt::chc_sett &uses = m_db.use(sp);
-    for (auto idx: uses) {
-      const horn_clauset & r = m_db.get_clause(idx);
-      const exprt * head = r.head();
-      if (can_cast_expr<function_application_exprt>(*head))
+    for(auto idx : uses)
+    {
+      const horn_clauset &r = m_db.get_clause(idx);
+      const exprt *head = r.head();
+      if(can_cast_expr<function_application_exprt>(*head))
       {
         outgoing.insert(to_function_application_expr(*head).function());
       }
@@ -93,21 +112,24 @@ void chc_grapht::build_graph()
 
     std::unordered_set<exprt, irep_hash> incoming;
     const chc_dbt::chc_sett &defs = m_db.def(sp);
-    chc_dbt::is_state_pred isStatePred(m_db);
-    for (auto idx : defs) {
-      const horn_clauset & r = m_db.get_clause(idx);
+    chc_dbt::is_state_predt isStatePred(m_db);
+    for(auto idx : defs)
+    {
+      const horn_clauset &r = m_db.get_clause(idx);
       std::set<symbol_exprt> symbols = find_symbols(*r.body());
-      for (auto & s : symbols)
-        if (isStatePred(s))
+      for(auto &s : symbols)
+        if(isStatePred(s))
           incoming.insert(s);
     }
     m_incoming.insert(std::make_pair(sp, incoming));
   }
 
-  for (auto & sp : m_db.get_state_preds()) {
+  for(auto &sp : m_db.get_state_preds())
+  {
     std::string name = as_string(sp.get_identifier());
 
-    if (name.find("SInitial") != std::string::npos && incoming(sp).size() == 0) {
+    if(name.find("SInitial") != std::string::npos && incoming(sp).size() == 0)
+    {
       m_entry = &sp;
       break;
     }

@@ -11,7 +11,7 @@ Author: Yakir Vizel
 
 #include "cutpoint_graph.h"
 
-#include "language_util.h"
+#include "langapi/language_util.h"
 
 #include <fstream>
 #include <iostream>

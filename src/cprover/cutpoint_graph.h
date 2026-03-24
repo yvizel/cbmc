@@ -12,7 +12,7 @@ Author: Yakir Vizel
 #ifndef CPROVER_CPROVER_CUTPOINT_GRAPH_H
 #define CPROVER_CPROVER_CUTPOINT_GRAPH_H
 
-#include "goto_model.h"
+#include "goto-programs/goto_model.h"
 
 #include <memory>
 #include <vector>

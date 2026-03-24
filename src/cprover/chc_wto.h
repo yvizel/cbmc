@@ -15,7 +15,7 @@ Author: Yakir Vizel
 #include "chc_db.h"
 
 #include <deque>
-#include <invariant.h>
+#include <util/invariant.h>
 #include <iostream>
 #include <optional>
 #include <unordered_map>

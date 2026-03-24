@@ -14,6 +14,7 @@ Author: Yakir Vizel
 
 #include "goto_model.h"
 
+#include <memory>
 #include <vector>
 
 /**

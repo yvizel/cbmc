@@ -119,11 +119,11 @@ void cutpoint_grapht::compute_edges(const goto_functiont &goto_function)
       std::vector<bool> &breach = m_bwd[&(*it)];
       std::vector<bool> &freach = m_fwd[&(*it)];
 
-      for(int i = 0; i < breach.size(); i++)
+      for(std::size_t i = 0; i < breach.size(); i++)
       {
         if(breach[i] == false)
           continue;
-        for(int j = 0; j < freach.size(); j++)
+        for(std::size_t j = 0; j < freach.size(); j++)
         {
           if(freach[j] == false)
             continue;

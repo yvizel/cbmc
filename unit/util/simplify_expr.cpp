@@ -652,3 +652,52 @@ TEST_CASE("Simplify quantifier", "[core][util]")
     REQUIRE(simplify_expr(forall_exprt{a, true_exprt{}}, ns) == true_exprt{});
   }
 }
+
+TEST_CASE("Simplify index of vector", "[core][util]")
+{
+  // size_type and c_index_type require architecture configuration
+  config.set_arch("none");
+
+  const symbol_tablet symbol_table;
+  const namespacet ns(symbol_table);
+
+  const signedbv_typet int_type(32);
+  const vector_typet vector_type(
+    c_index_type(), int_type, from_integer(4, size_type()));
+
+  const exprt::operandst elements = {
+    from_integer(10, int_type),
+    from_integer(20, int_type),
+    from_integer(30, int_type),
+    from_integer(40, int_type)};
+
+  const vector_exprt vector_expr(elements, vector_type);
+
+  SECTION("Index 0 simplifies to 10")
+  {
+    const index_exprt idx(
+      vector_expr, from_integer(0, c_index_type()), int_type);
+    REQUIRE(simplify_expr(idx, ns) == from_integer(10, int_type));
+  }
+
+  SECTION("Index 1 simplifies to 20")
+  {
+    const index_exprt idx(
+      vector_expr, from_integer(1, c_index_type()), int_type);
+    REQUIRE(simplify_expr(idx, ns) == from_integer(20, int_type));
+  }
+
+  SECTION("Index 2 simplifies to 30")
+  {
+    const index_exprt idx(
+      vector_expr, from_integer(2, c_index_type()), int_type);
+    REQUIRE(simplify_expr(idx, ns) == from_integer(30, int_type));
+  }
+
+  SECTION("Index 3 simplifies to 40")
+  {
+    const index_exprt idx(
+      vector_expr, from_integer(3, c_index_type()), int_type);
+    REQUIRE(simplify_expr(idx, ns) == from_integer(40, int_type));
+  }
+}

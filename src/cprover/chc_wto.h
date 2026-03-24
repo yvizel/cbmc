@@ -20,6 +20,7 @@ Author: Yakir Vizel
 #include <optional>
 #include <unordered_map>
 #include <vector>
+#include <memory>
 
 class wto_singletont;
 class wto_componentt;

@@ -45,11 +45,9 @@ void horn_clauset::used_func_app(
   body->visit_pre(
     [&funcs](const exprt &expr)
     {
-      if(can_cast_expr<function_application_exprt>(expr))
+      if(auto f = expr_try_dynamic_cast<function_application_exprt>(expr))
       {
-        const function_application_exprt &f =
-          to_function_application_expr(expr);
-        funcs.insert(f);
+        funcs.insert(*f);
       }
     });
 
@@ -103,9 +101,9 @@ void chc_grapht::build_graph()
     {
       const horn_clauset &r = m_db.get_clause(idx);
       const exprt *head = r.head();
-      if(can_cast_expr<function_application_exprt>(*head))
+      if (auto f = expr_try_dynamic_cast<function_application_exprt>(*head))
       {
-        outgoing.insert(to_function_application_expr(*head).function());
+        outgoing.insert(f->function());
       }
     }
     m_outgoing.insert(std::make_pair(sp, outgoing));

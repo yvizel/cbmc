@@ -12,10 +12,10 @@ Author: Yakir Vizel
 #ifndef CPROVER_CPROVER_CHC_DB_H
 #define CPROVER_CPROVER_CHC_DB_H
 
+#include <util/expr_iterator.h>
 #include <util/find_symbols.h>
 #include <util/mathematical_expr.h>
 #include <util/std_expr.h>
-#include <util/expr_iterator.h>
 
 #include <functional>
 #include <map>

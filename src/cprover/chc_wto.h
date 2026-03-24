@@ -12,15 +12,16 @@ Author: Yakir Vizel
 #ifndef CPROVER_CPROVER_CHC_WTO_H
 #define CPROVER_CPROVER_CHC_WTO_H
 
+#include <util/invariant.h>
+
 #include "chc_db.h"
 
 #include <deque>
-#include <util/invariant.h>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <unordered_map>
 #include <vector>
-#include <memory>
 
 class wto_singletont;
 class wto_componentt;

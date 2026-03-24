@@ -11,10 +11,10 @@ Author: Yakir Vizel
 
 #include "cutpoint_graph.h"
 
-#include "langapi/language_util.h"
-
 #include <fstream>
 #include <iostream>
+
+#include "langapi/language_util.h"
 
 cutpoint_grapht::~cutpoint_grapht()
 {

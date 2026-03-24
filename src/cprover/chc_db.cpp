@@ -101,7 +101,7 @@ void chc_grapht::build_graph()
     {
       const horn_clauset &r = m_db.get_clause(idx);
       const exprt *head = r.head();
-      if (auto f = expr_try_dynamic_cast<function_application_exprt>(*head))
+      if(auto f = expr_try_dynamic_cast<function_application_exprt>(*head))
       {
         outgoing.insert(f->function());
       }

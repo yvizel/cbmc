@@ -12,10 +12,10 @@ Author: Yakir Vizel
 #ifndef CPROVER_CPROVER_CUTPOINT_GRAPH_H
 #define CPROVER_CPROVER_CUTPOINT_GRAPH_H
 
-#include "goto-programs/goto_model.h"
-
 #include <memory>
 #include <vector>
+
+#include "goto-programs/goto_model.h"
 
 /**
  * A cut-point graph over goto programs.

@@ -15,8 +15,7 @@ Author: Yakir Vizel
 #include <util/find_symbols.h>
 #include <util/mathematical_expr.h>
 #include <util/std_expr.h>
-
-#include "expr_iterator.h"
+#include <util/expr_iterator.h>
 
 #include <functional>
 #include <map>

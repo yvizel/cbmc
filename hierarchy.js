@@ -1616,6 +1616,7 @@ var hierarchy =
               [ "state_type_compatible_exprt", "classstate__type__compatible__exprt.html", null ]
             ] ],
             [ "extractbits_exprt", "classextractbits__exprt.html", null ],
+            [ "floatbv_fma_exprt", "classfloatbv__fma__exprt.html", null ],
             [ "index_designatort", "classindex__designatort.html", null ],
             [ "member_designatort", "classmember__designatort.html", null ],
             [ "multi_ary_exprt", "classmulti__ary__exprt.html", [
@@ -1843,9 +1844,9 @@ var hierarchy =
           [ "cpp_enum_typet", "classcpp__enum__typet.html", null ],
           [ "empty_typet", "classempty__typet.html", null ],
           [ "enumeration_typet", "classenumeration__typet.html", null ],
+          [ "integer_range_typet", "classinteger__range__typet.html", null ],
           [ "integer_typet", "classinteger__typet.html", null ],
           [ "natural_typet", "classnatural__typet.html", null ],
-          [ "range_typet", "classrange__typet.html", null ],
           [ "rational_typet", "classrational__typet.html", null ],
           [ "real_typet", "classreal__typet.html", null ],
           [ "state_typet", "classstate__typet.html", null ],

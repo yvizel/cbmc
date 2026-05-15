@@ -1,9 +1,9 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
 <area shape="rect" id="Node000000" href="$classwto__element__visitort.html" title="Bourdoncle Components over the cut&#45;point graph of CHCs is a weak topological ordering (wto) on cut&#45;po..." alt="" coords="5,70,165,95"/>
 <area shape="rect" id="Node000001" href="$classchc__wtot_1_1nested__components__visitort.html" title=" " alt="" coords="213,5,432,45"/>
-<area shape="poly" id="edge911_Node000000_Node000001" title=" " alt="" coords="151,64,239,43,240,48,153,69"/>
+<area shape="poly" id="edge912_Node000000_Node000001" title=" " alt="" coords="151,64,239,43,240,48,153,69"/>
 <area shape="rect" id="Node000002" href="$classresolution__visitort.html" title="Traverses the clauses in order (wto) and resolving all predicates (symbols) that are not a head of a ..." alt="" coords="253,70,393,95"/>
-<area shape="poly" id="edge912_Node000000_Node000002" title=" " alt="" coords="179,80,253,80,253,85,179,85"/>
+<area shape="poly" id="edge913_Node000000_Node000002" title=" " alt="" coords="179,80,253,80,253,85,179,85"/>
 <area shape="rect" id="Node000003" href="$classsimple__visitort.html" title="Simple Visitor prints the components of the WTO with well&#45;formed parentheses." alt="" coords="263,119,382,145"/>
-<area shape="poly" id="edge913_Node000000_Node000003" title=" " alt="" coords="161,96,264,117,263,122,160,101"/>
+<area shape="poly" id="edge914_Node000000_Node000003" title=" " alt="" coords="161,96,264,117,263,122,160,101"/>
 </map>

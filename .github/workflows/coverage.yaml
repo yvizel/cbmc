@@ -66,6 +66,13 @@ jobs:
           echo "lcov_excl_line = UNREACHABLE" > ~/.lcovrc
           cmake --build build --target coverage -- -j${{env.linux-vcpus}}
       - name: Upload coverage statistics to Codecov
+        # Skip the upload when no Codecov token is available (e.g. on
+        # pull_request runs from forks, where repository secrets are not
+        # exposed). Without a token the codecov-action sends an empty token
+        # string, which Codecov rejects as "not valid tokenless upload".
+        if: ${{ env.CODECOV_TOKEN != '' }}
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

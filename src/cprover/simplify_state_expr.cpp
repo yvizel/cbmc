@@ -43,6 +43,19 @@ static bool types_are_compatible(const typet &a, const typet &b)
     return false;
 }
 
+exprt remove_all_update_state(
+  exprt src,
+  const namespacet &ns)
+{
+  for(auto &op : src.operands())
+    op = remove_all_update_state(op, ns);
+
+  if (src.id() == ID_update_state) {
+    src = to_update_state_expr(src).state();
+  }
+  return src;
+}
+
 exprt simplify_evaluate_update(
   evaluate_exprt evaluate_expr,
   const std::unordered_set<symbol_exprt, irep_hash> &address_taken,
@@ -202,6 +215,32 @@ exprt simplify_allocate(allocate_exprt src)
   return std::move(src);
 }
 
+exprt simplify_reallocate(reallocate_exprt src)
+{
+  // A store does not affect the result.
+  // allocate(ς[A:=V]), size) --> allocate(ς, size)
+  if(src.state().id() == ID_update_state)
+  {
+    // rec. call
+    src.state() = to_update_state_expr(src.state()).state();
+    return simplify_reallocate(src);
+  }
+  else if(src.state().id() == ID_enter_scope_state)
+  {
+    // rec. call
+    src.state() = to_enter_scope_state_expr(src.state()).state();
+    return simplify_reallocate(src);
+  }
+  else if(src.state().id() == ID_exit_scope_state)
+  {
+    // rec. call
+    src.state() = to_exit_scope_state_expr(src.state()).state();
+    return simplify_reallocate(src);
+  }
+
+  return std::move(src);
+}
+
 exprt simplify_evaluate_allocate_state(
   evaluate_exprt evaluate_expr,
   const namespacet &ns)
@@ -344,7 +383,7 @@ exprt simplify_live_object_expr(
   // live_object(ς[A:=V]), p) --> live_object(ς, p)
   if(src.state().id() == ID_update_state)
   {
-    src.state() = to_update_state_expr(src.state()).state();
+    src.state() = remove_all_update_state(src.state(), ns);
 
     // rec. call
     return simplify_live_object_expr(std::move(src), address_taken, ns);
@@ -456,6 +495,14 @@ exprt simplify_writeable_object_expr(
     return std::move(src);
   }
 
+  // Enter scope does not affect the result.
+  // writeable_object(enter_scope(ς,q), p) --> writeable_object(ς, p)
+  if(src.state().id() == ID_enter_scope_state)
+  {
+    src.state() = to_enter_scope_state_expr(src.state()).state();
+    return std::move(src);
+  }
+
   return std::move(src);
 }
 
@@ -513,13 +560,18 @@ exprt simplify_object_size_expr(
 
   // A store does not affect the result.
   // object_size(ς[A:=V]), p) --> object_size(ς, p)
+  // Similarly, enter/exit scope does not affect the result.
   if(src.state().id() == ID_update_state)
   {
     return src.with_state(to_update_state_expr(src.state()).state());
   }
-  else if(src.state().id() == ID_exit_scope_state)
+  else if (src.state().id() == ID_enter_scope_state ||
+          src.state().id() == ID_exit_scope_state)
   {
-    return src.with_state(to_exit_scope_state_expr(src.state()).state());
+    exprt stripped_state = (src.state().id() == ID_enter_scope_state) ?
+                            to_enter_scope_state_expr(src.state()).state() :
+                            to_exit_scope_state_expr(src.state()).state();
+    return src.with_state(stripped_state);
   }
 
   return std::move(src);
@@ -533,6 +585,34 @@ exprt simplify_ok_expr(
   auto &state = src.state();
   auto &pointer = src.address();
   auto &size = src.size();
+
+  if (pointer.id() == ID_evaluate) {
+    auto eval = to_evaluate_expr(pointer);
+    if (eval.state().id() == ID_enter_scope_state)
+    {
+      // Entering scope does not change address
+      auto ok_expr = src;
+      ok_expr.address() = eval.with_state(to_enter_scope_state_expr(eval.state()).state());
+      return simplify_state_expr_node(ok_expr, address_taken, ns);
+    }
+    else if (eval.state().id() == ID_update_state)
+    {
+      auto update = simplify_evaluate_update(eval, address_taken, ns);
+      auto ok_expr = src;
+      ok_expr.address() = update;
+      return simplify_state_expr_node(ok_expr, address_taken, ns);
+    }
+  }
+  else if (pointer.id() == ID_typecast)
+  {
+    auto cast = simplify_object_expression(pointer);
+    if (cast != pointer)
+    {
+      auto ok_expr = src;
+      ok_expr.address() = cast;
+      return simplify_state_expr_node(ok_expr, address_taken, ns);
+    }
+  }
 
   if(state.id() == ID_update_state)
   {
@@ -690,7 +770,8 @@ exprt simplify_is_cstring_expr(
     // maybe the same
 
     // Are we writing zero?
-    if(update_state_expr.new_value() == 0)
+    if(update_state_expr.new_value() == 0 ||
+       (update_state_expr.new_value().id() == ID_typecast && to_typecast_expr(update_state_expr.new_value()).op() == 0))
     {
       // cstring(s[p:=0], q) --> if p alias q then true else cstring(s, q)
       auto same_object = ::same_object(pointer, update_state_expr.address());
@@ -966,6 +1047,10 @@ exprt simplify_state_expr_node(
   if(src.id() == ID_allocate)
   {
     return simplify_allocate(to_allocate_expr(src));
+  }
+  else if (src.id() == ID_reallocate)
+  {
+    return simplify_reallocate(to_reallocate_expr(src));
   }
   else if(src.id() == ID_evaluate)
   {

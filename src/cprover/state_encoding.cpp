@@ -1289,6 +1289,46 @@ void large_step_encoding(
   }
 }
 
+void remove_rounding_mode(container_encoding_targett &container) {
+  bool res = false;
+  for(auto &clause : container.constraints)
+  {
+    clause.visit_pre([&res](const exprt &e) {
+      if(e.id() == ID_evaluate)
+      {
+        auto address = to_evaluate_expr(e).address();
+        if(address.id() == ID_object_address)
+        {
+          auto symb = to_object_address_expr(address).object_expr();
+          res = (symb.get_identifier() == "__CPROVER_rounding_mode");
+        }
+      }
+    });
+    if(res)
+      break;
+  }
+  if(!res) {
+    std::cout << "No eval for rounding_mode" << std::endl;
+    for(auto &e : container.constraints)
+    {
+      auto &head = to_implies_expr(to_forall_expr(e).where()).op1();
+      if(head.id() == ID_function_application)
+      {
+        auto &f = to_function_application_expr(head);
+        auto tr = f.arguments()[0];
+        if(tr.id() == ID_update_state)
+        {
+          auto &update = to_update_state_expr(tr);
+          if(update.address().id() != ID_object_address)
+            continue;
+          auto symbol = to_object_address_expr(update.address()).object_expr();
+          if(symbol.get_identifier() == "__CPROVER_rounding_mode")
+            f.arguments()[0] = update.state();
+        }
+      }
+    }
+  }
+}
 solver_resultt state_encoding_solver(
   const goto_modelt &goto_model,
   bool program_is_inlined,
@@ -1311,6 +1351,7 @@ solver_resultt state_encoding_solver(
 
   if(solver_options.large_step)
   {
+    remove_rounding_mode(container);
     container_encoding_targett large_step_container;
     large_step_encoding(container, large_step_container);
     std::cout << "Solving large-step\n";

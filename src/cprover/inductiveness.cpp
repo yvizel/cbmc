@@ -240,7 +240,7 @@ inductiveness_resultt inductiveness_check(
     }
 
     propagate(
-      frames, work, address_taken, solver_options.verbose, ns, propagator);
+      frames, work, address_taken, solver_options.large_step, solver_options.verbose, ns, propagator);
 
     // did we drop anything?
     if(!dropped.empty())

@@ -15,6 +15,7 @@ Author: Daniel Kroening, dkr@amazon.com
 #include <util/format_expr.h>
 #include <util/simplify_expr.h>
 
+#include "equality_propagation.h"
 #include "simplify_state_expr.h"
 #include "state.h"
 
@@ -25,6 +26,7 @@ void propagate(
   const std::vector<framet> &frames,
   const workt &work,
   const std::unordered_set<symbol_exprt, irep_hash> &address_taken,
+  bool large_step,
   bool verbose,
   const namespacet &ns,
   const std::function<void(const symbol_exprt &, exprt, const workt::patht &)>
@@ -56,13 +58,30 @@ void propagate(
     auto lambda_expr = lambda_exprt({state_expr()}, work.invariant);
     auto instance = lambda_expr.instantiate({next_state});
     auto simplified1 = simplify_state_expr(instance, address_taken, ns);
-    auto simplified1a = simplify_state_expr(simplified1, address_taken, ns);
-    if(simplified1 != simplified1a)
+
+    if(large_step)
     {
-      std::cout << "SIMP0: " << format(instance) << "\n";
-      std::cout << "SIMP1: " << format(simplified1) << "\n";
-      std::cout << "SIMPa: " << format(simplified1a) << "\n";
-      abort();
+      // In case of large-step, the constraint is a complex expression. This
+      // requires iterative simplification.
+      auto simplified1a =
+        simplify_state_expr(simplify_expr(simplified1, ns), address_taken, ns);
+      while(simplified1 != simplified1a)
+      {
+        simplified1 = simplified1a;
+        simplified1a = simplify_state_expr(
+          simplify_expr(simplified1, ns), address_taken, ns);
+      }
+    }
+    else
+    {
+      auto simplified1a = simplify_state_expr(simplified1, address_taken, ns);
+      if(simplified1 != simplified1a)
+      {
+        std::cout << "SIMP0: " << format(instance) << "\n";
+        std::cout << "SIMP1: " << format(simplified1) << "\n";
+        std::cout << "SIMPa: " << format(simplified1a) << "\n";
+        abort();
+      }
     }
 
     auto simplified2 = simplify_expr(simplified1, ns);
@@ -83,6 +102,24 @@ void propagate(
         to_function_application_expr(to_and_expr(implication.lhs).op0());
       auto &state = to_symbol_expr(function_application.function());
       auto cond1 = to_and_expr(implication.lhs).op1();
+      if(large_step)
+      {
+        // Similarly here. In the case of large-step we first run equality
+        // propagation, then iteratively simplify the expression.
+        if(can_cast_expr<and_exprt>(cond1))
+        {
+          auto and_cond1 = simplify_expr(to_and_expr(cond1), ns);
+          equality_propagation(and_cond1.operands());
+          cond1 = simplify_expr(and_cond1, ns);
+        }
+        exprt cond1a = simplify_state_expr(cond1, address_taken, ns);
+        while(cond1a != cond1)
+        {
+          cond1 = cond1a;
+          cond1a = simplify_state_expr(cond1, address_taken, ns);
+        }
+        cond1 = simplify_expr(cond1, ns);
+      }
       auto cond2 = implies_exprt(cond1, simplified2);
       auto simplified = simplify_expr(cond2, ns);
       propagator(state, simplified, work.path);
